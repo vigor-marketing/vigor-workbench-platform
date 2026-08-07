@@ -1,0 +1,15 @@
+{
+  "id": "vigor-workbench-platform",
+  "name": "Vigor 统一办公工作平台",
+  "version": "0.1.0",
+  "entryPath": "/",
+  "type": "portal",
+  "integrationContractVersion": "1.0",
+  "capabilities": ["app-registry", "todo-hub", "role-context", "embedded-app-shell"],
+  "security": {
+    "authentication": "oidc-pending",
+    "authorization": "bff-pending",
+    "dataBoundary": "no-cross-module-direct-database-access"
+  },
+  "registeredApps": ["ai-sales-coach", "product-encoder", "sales-commission"]
+}
