@@ -1,13 +1,44 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes, useParams } from 'react-router-dom'
 import { Icon } from './components/Icon'
 import { appUrl, apps, canAccess, departments, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
+import { fetchTodos, updateTodo } from './lib/platform-api'
 import './styles.css'
 
 function Layout() {
   const [role, setRole] = useState<Role>('salesperson')
   const [todos, setTodos] = useState<Todo[]>(initialTodos)
-  const completeTodo = (id: string) => setTodos(items => items.map(item => item.id === id ? { ...item, completed: !item.completed } : item))
+  const [todoSource, setTodoSource] = useState<'api' | 'demo'>('demo')
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchTodos(role).then(items => {
+      if (!cancelled) {
+        setTodos(items)
+        setTodoSource('api')
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setTodos(initialTodos)
+        setTodoSource('demo')
+      }
+    })
+    return () => { cancelled = true }
+  }, [role])
+
+  const completeTodo = (id: string) => {
+    const current = todos.find(item => item.id === id)
+    if (!current) return
+    const completed = !current.completed
+    setTodos(items => items.map(item => item.id === id ? { ...item, completed } : item))
+    if (todoSource === 'api') {
+      void updateTodo(role, id, completed).then(updated => {
+        setTodos(items => items.map(item => item.id === id ? updated : item))
+      }).catch(() => {
+        setTodos(items => items.map(item => item.id === id ? current : item))
+      })
+    }
+  }
 
   return <div className="shell">
     <aside className="sidebar">
@@ -23,7 +54,7 @@ function Layout() {
           {apps.filter(app => app.department === department).map(app => <NavLink key={app.id} to={`/apps/${app.id}`} className={({ isActive }) => `app-nav ${isActive ? 'active' : ''}`}><i>{app.shortName.slice(0, 1)}</i>{app.name}</NavLink>)}
         </div>)}
       </div>
-      <div className="sidebar-bottom"><Link to="/settings" className="nav-item"><Icon name="settings" />接入设置</Link><p>平台版本 0.1<br />演示数据环境</p></div>
+      <div className="sidebar-bottom"><Link to="/settings" className="nav-item"><Icon name="settings" />接入设置</Link><p>平台版本 0.1<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
     </aside>
     <main className="main-content">
       <header className="topbar">
