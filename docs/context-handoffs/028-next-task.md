@@ -31,6 +31,12 @@
 - 桌面端左侧栏可经顶栏汉堡按钮折叠为 72px 图标窄栏（品牌标记 + 图标 + 应用首字），再点展开；状态持久化到 localStorage（`vigor.sidebar.collapsed`）。
 - 移动端（≤960px）抽屉行为保持不变。折叠/展开均无横向溢出，生产构建通过。
 
+### 组织架构与人员清单（新功能）
+- 数据源：用户上传 `人员组织架构清单.numbers`（Apple Numbers），已解析为 49 人（部门/团队/组织角色/姓名/英文名），存于 `apps/bff/src/org.service.ts`。
+- BFF API（需登录会话）：`GET /api/org/tree`（部门→团队→人员树）、`GET /api/org/persons`、`GET /api/org/departments`。
+- 前端选择页：`/org-picker?mode=single|multi&title=…`（独立新窗口，登录后访问），支持搜索、按部门分组、单选/多选；确认后 `window.opener.postMessage({type:'vigor.org.picker.result',mode,persons},'*')` 并关闭窗口。
+- 供其他程序调用：`window.open('<工作台>/org-picker?mode=multi')`，监听 message 事件即可。
+
 ## 本轮发现并修复的 install 回归（由 sync 提交引入）
 1. `pnpm-workspace.yaml` 丢失 `packages: - apps/*` → 已恢复。
 2. `pnpm-lock.yaml` 残留 `tencentcloud-sdk-nodejs@4.1.286`（`apps/bff/package.json` 已不含）→ 已重生成 lockfile 移除残留。
