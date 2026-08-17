@@ -21,7 +21,7 @@ export function OrgPickerPage() {
       .then(resp => { if (!resp.ok) throw new Error('未登录或无权访问组织数据'); return resp.json() as Promise<OrgDept[]> })
       .then(setTree)
       .catch(err => setError(err instanceof Error ? err.message : '加载失败'))
-  }, [])
+  }, [token])
 
   const toggle = (id: string) => {
     setSelected(prev => {
@@ -48,8 +48,23 @@ export function OrgPickerPage() {
     })).filter(d => d.teams.length > 0)
   }, [tree, query])
 
-  const flat = useMemo(() => tree.flatMap(d => d.teams.flatMap(t => t.persons)), [tree])
-  const selectedPersons = useMemo(() => flat.filter(p => selected.has(p.id)), [flat, selected])
+  const flat = useMemo(() => filtered.flatMap(d => d.teams.flatMap(t => t.persons)), [filtered])
+  const allFlat = useMemo(() => tree.flatMap(d => d.teams.flatMap(t => t.persons)), [tree])
+  const selectedPersons = useMemo(() => allFlat.filter(p => selected.has(p.id)), [allFlat, selected])
+
+  // 批量选择（多选模式）
+  const deptIds = (d: OrgDept) => d.teams.flatMap(t => t.persons.map(p => p.id))
+  const deptAllSelected = (d: OrgDept) => { const ids = deptIds(d); return ids.length > 0 && ids.every(id => selected.has(id)) }
+  const toggleDepartment = (d: OrgDept) => {
+    const ids = deptIds(d); const on = !deptAllSelected(d)
+    setSelected(prev => { const next = new Set(prev); ids.forEach(id => on ? next.add(id) : next.delete(id)); return next })
+  }
+  const setDepartment = (d: OrgDept, on: boolean) => {
+    const ids = deptIds(d)
+    setSelected(prev => { const next = new Set(prev); ids.forEach(id => on ? next.add(id) : next.delete(id)); return next })
+  }
+  const selectAll = () => setSelected(new Set(flat.map(p => p.id)))
+  const clearAll = () => setSelected(new Set())
 
   const confirm = () => {
     const result = { type: 'vigor.org.picker.result', mode, persons: selectedPersons }
@@ -61,7 +76,7 @@ export function OrgPickerPage() {
     }
   }
 
-  const total = flat.length
+  const total = allFlat.length
 
   return <section className="org-picker">
     <header className="org-picker-head">
@@ -75,27 +90,46 @@ export function OrgPickerPage() {
 
     <div className="org-picker-search">
       <Icon name="search" size={16} />
-      <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索姓名 / 英文名 / 部门 / 团队" autoFocus />
+      <input value={query} onChange={e => setQuery(e.target.value)} placeholder="按姓名 / 英文名 / 部门 / 团队 / 角色模糊查询" autoFocus />
     </div>
+
+    {mode === 'multi' && <div className="org-picker-bulk">
+      <span className="org-picker-hint">ps:点击部门可全选/清空部门下员工</span>
+      <div className="org-picker-bulk-btns">
+        <button type="button" onClick={selectAll}>全选</button>
+        <button type="button" onClick={clearAll}>清空所有</button>
+      </div>
+    </div>}
 
     {error && <p className="org-picker-error" role="status">{error}</p>}
 
     <div className="org-picker-list">
-      {filtered.map(d => <div className="org-dept" key={d.department}>
-        <div className="org-dept-title">{d.department}<span>{d.teams.reduce((n, t) => n + t.persons.length, 0)}</span></div>
-        {d.teams.map(t => <div className="org-team" key={t.team}>
-          {d.teams.length > 1 && <div className="org-team-title">{t.team}</div>}
-          {t.persons.map(p => {
-            const on = selected.has(p.id)
-            return <button type="button" key={p.id} className={'org-person' + (on ? ' selected' : '')} onClick={() => toggle(p.id)}>
-              <span className={'org-check' + (mode === 'single' ? ' radio' : '')}>{on ? <Icon name="check" size={13} /> : null}</span>
-              <span className="org-avatar">{p.name.slice(0, 1)}</span>
-              <span className="org-person-main"><b>{p.name}</b><small>{p.englishName}</small></span>
-              <span className="org-person-meta">{p.role}{p.team !== p.department ? ' · ' + p.team : ''}</span>
-            </button>
-          })}
-        </div>)}
-      </div>)}
+      {filtered.map(d => {
+        const ds = deptAllSelected(d)
+        return <div className="org-dept" key={d.department}>
+          <button type="button" className={'org-dept-title' + (ds ? ' all-selected' : '')} onClick={() => mode === 'multi' && toggleDepartment(d)}>
+            <span className="org-dept-caret">{ds ? <Icon name="check" size={12} /> : null}</span>
+            {d.department}
+            <span className="org-dept-count">{d.teams.reduce((n, t) => n + t.persons.length, 0)}</span>
+            {mode === 'multi' && <span className="org-dept-actions" onClick={e => e.stopPropagation()}>
+              <button type="button" onClick={() => setDepartment(d, true)}>全选本部门</button>
+              <button type="button" onClick={() => setDepartment(d, false)}>清空本部门</button>
+            </span>}
+          </button>
+          {d.teams.map(t => <div className="org-team" key={t.team}>
+            {d.teams.length > 1 && <div className="org-team-title">{t.team}</div>}
+            {t.persons.map(p => {
+              const on = selected.has(p.id)
+              return <button type="button" key={p.id} className={'org-person' + (on ? ' selected' : '')} onClick={() => toggle(p.id)}>
+                <span className={'org-check' + (mode === 'single' ? ' radio' : '')}>{on ? <Icon name="check" size={13} /> : null}</span>
+                <span className="org-avatar">{p.name.slice(0, 1)}</span>
+                <span className="org-person-main"><b>{p.name}</b><small>{p.englishName}</small></span>
+                <span className="org-person-meta">{p.role}{p.team !== p.department ? ' · ' + p.team : ''}</span>
+              </button>
+            })}
+          </div>)}
+        </div>
+      })}
       {filtered.length === 0 && <div className="org-picker-empty"><Icon name="search" size={22} /><p>{query ? '没有匹配的人员。' : '暂无人员数据。'}</p></div>}
     </div>
 
