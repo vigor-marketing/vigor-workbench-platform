@@ -23,6 +23,14 @@ function Layout() {
   const [todoSource, setTodoSource] = useState<'api' | 'demo'>('demo')
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => { try { return localStorage.getItem('vigor.sidebar.collapsed') === '1' } catch { return false } })
+  const toggleNav = () => {
+    if (window.matchMedia('(max-width: 960px)').matches) {
+      setSidebarOpen(open => !open)
+    } else {
+      setSidebarCollapsed(collapsed => { const next = !collapsed; try { localStorage.setItem('vigor.sidebar.collapsed', next ? '1' : '0') } catch {}; return next })
+    }
+  }
   const [hasNewNotifications, setHasNewNotifications] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const previousPendingIdsRef = useRef<Set<string> | null>(null)
@@ -83,7 +91,7 @@ function Layout() {
   if (!authReady) return <main className="login-page"><p>正在验证登录状态…</p></main>
   if (!session) return <LoginPage onLogin={login} />
 
-  return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''}`}>
+  return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onClick={event => { if ((event.target as HTMLElement).closest('a')) setSidebarOpen(false) }}>
       <Link className="brand" to="/" aria-label="返回工作台首页"><span className="brand-mark">V</span><span>Vigor<br /><small>WORKBENCH</small></span></Link>
       <nav className="primary-nav" aria-label="主导航">
@@ -102,7 +110,7 @@ function Layout() {
     <button className="sidebar-backdrop" type="button" aria-label="关闭导航" tabIndex={sidebarOpen ? 0 : -1} onClick={() => setSidebarOpen(false)} />
     <main className="main-content">
       <header className="topbar">
-        <div className="topbar-leading"><button className="navigation-toggle" type="button" aria-label={sidebarOpen ? '关闭主导航' : '打开主导航'} aria-expanded={sidebarOpen} aria-controls="workspace-sidebar" onClick={() => setSidebarOpen(open => !open)}><span /><span /><span /></button><div className="crumb"><span>VIGOR</span><b>/</b><span>统一办公平台</span></div></div>
+        <div className="topbar-leading"><button className="navigation-toggle" type="button" aria-label={sidebarOpen ? '关闭主导航' : sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'} aria-expanded={sidebarOpen || !sidebarCollapsed} aria-controls="workspace-sidebar" onClick={toggleNav}><span /><span /><span /></button><div className="crumb"><span>VIGOR</span><b>/</b><span>统一办公平台</span></div></div>
         <div className="top-actions">
           <button className="icon-button" aria-label="搜索"><Icon name="search" /></button>
           <div className="notification-wrap">

@@ -6,7 +6,7 @@ body { min-width: 320px; margin: 0; }
 a { color: inherit; text-decoration: none; }
 button, select { font: inherit; }
 button { cursor: pointer; }
-.shell { min-height: 100vh; display: grid; grid-template-columns: 246px minmax(0, 1fr); }
+.shell { min-height: 100vh; display: grid; grid-template-columns: 246px minmax(0, 1fr); transition: grid-template-columns .22s ease; }
 .sidebar { min-height: 100vh; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; background: #15202c; color: #d8e0e6; padding: 24px 14px 18px; }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 27px; color: #f7fafb; font-weight: 700; line-height: 1.05; letter-spacing: .03em; }
 .brand small { font: 500 8px/1 'DM Mono', monospace; letter-spacing: .18em; color: #8ea1af; }
@@ -300,9 +300,27 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 
 /* Workbench responsive shell: keep navigation reachable and content fluid at every supported aspect ratio. */
 .topbar-leading { display: flex; min-width: 0; align-items: center; gap: 10px; }
-.navigation-toggle, .sidebar-backdrop { display: none; }
+.navigation-toggle { display: inline-flex; width: 44px; height: 44px; flex: 0 0 44px; align-items: center; justify-content: center; flex-direction: column; gap: 4px; border: 0; background: transparent; color: #20272c; }
+.navigation-toggle:hover { background: #e9ece8; }
+.navigation-toggle:focus-visible { outline: 2px solid var(--brand-red); outline-offset: -2px; }
+.navigation-toggle span { width: 18px; height: 2px; background: currentColor; transition: transform .18s ease, opacity .18s ease; }
+.sidebar-backdrop { display: none; }
 .main-content, .page, .application-page { min-width: 0; }
 .main-content { overflow-x: clip; }
+
+@media (min-width: 961px) {
+  .shell.sidebar-collapsed { grid-template-columns: 72px minmax(0, 1fr); }
+  .sidebar-collapsed .sidebar { padding: 24px 12px 18px; }
+  .sidebar-collapsed .brand { justify-content: center; padding-left: 0; padding-right: 0; }
+  .sidebar-collapsed .brand > span:not(.brand-mark) { display: none; }
+  .sidebar-collapsed .nav-item,
+  .sidebar-collapsed .app-nav { font-size: 0; justify-content: center; padding: 0; gap: 0; margin-left: 0; }
+  .sidebar-collapsed .nav-count,
+  .sidebar-collapsed .nav-caption,
+  .sidebar-collapsed .department-title,
+  .sidebar-collapsed .admin-nav-group,
+  .sidebar-collapsed .sidebar-bottom p { display: none; }
+}
 
 @media (min-width: 1800px) {
   .page { max-width: 1560px; }
@@ -340,22 +358,6 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
   }
   .sidebar-open .sidebar-backdrop { display: block; opacity: 1; pointer-events: auto; }
   .topbar { position: sticky; top: 0; z-index: 40; height: 60px; padding-inline: clamp(14px, 3vw, 25px); }
-  .navigation-toggle {
-    display: inline-flex;
-    width: 44px;
-    height: 44px;
-    flex: 0 0 44px;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 4px;
-    border: 0;
-    background: transparent;
-    color: #20272c;
-  }
-  .navigation-toggle:hover { background: #e9ece8; }
-  .navigation-toggle:focus-visible { outline: 2px solid var(--brand-red); outline-offset: -2px; }
-  .navigation-toggle span { width: 18px; height: 2px; background: currentColor; transition: transform .18s ease, opacity .18s ease; }
   .sidebar-open .navigation-toggle span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
   .sidebar-open .navigation-toggle span:nth-child(2) { opacity: 0; }
   .sidebar-open .navigation-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
