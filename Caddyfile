@@ -1,0 +1,15 @@
+:8080 {
+  basic_auth {
+    {$WORKBENCH_ADMIN_USER} {$WORKBENCH_ADMIN_HASH}
+  }
+
+  handle /api/* {
+    reverse_proxy bff:4000
+  }
+
+  handle {
+    root * /srv
+    try_files {path} /index.html
+    file_server
+  }
+}

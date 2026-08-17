@@ -3,6 +3,9 @@ import { AppController } from './app.controller.js'
 import { AppsService } from './apps.service.js'
 import { IdentityService } from './identity.service.js'
 import { TodosService } from './todos.service.js'
+import { IntegrationsService } from './integrations.service.js'
+import { AuthService } from './auth.service.js'
+import { SalesService } from './sales.service.js'
 
-@Module({ controllers: [AppController], providers: [AppsService, IdentityService, TodosService] })
+@Module({ controllers: [AppController], providers: [AppsService, IdentityService, TodosService, IntegrationsService, AuthService, SalesService] })
 export class AppModule {}

@@ -12,6 +12,10 @@ pnpm bff:dev
 
 开发模式下，未配置 `DATABASE_URL` 时使用内存演示待办；这仅方便界面联调，进程重启后数据会重置。配置 Postgres 后，待办数据写入 `workbench_todos`。
 
+连接腾讯云 PostgreSQL 时必须设置 `DATABASE_SSL=true`、`DATABASE_SSL_CA_PATH` 和 `DATABASE_SSL_SERVERNAME`。BFF 会验证 CA 与服务端名称，缺少任一配置将拒绝启动；不要用 `rejectUnauthorized=false` 绕过验证。数据库保持私网访问，开发机测试通过受限 SSH 隧道进行。
+
+复用 CloudBase PostgreSQL 时，设置 `TODO_STORAGE=cloudbase-pg`、`CLOUDBASE_ENV_ID` 与 `CLOUDBASE_PG_ROLE`。BFF 通过腾讯云 `ExecutePGSql` 管理接口、以专用数据库角色读写 `workbench.workbench_todos`，不开放数据库公网连接。`TENCENTCLOUD_SECRET_ID` 和 `TENCENTCLOUD_SECRET_KEY` 只能以 CloudBase 运行时密钥变量或本机临时环境变量提供，严禁提交到仓库。
+
 ## 当前 API
 
 - `GET /api/health`
