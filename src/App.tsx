@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, NavLink, Route, Routes, useParams } from 'react-router-dom'
+import { Link, NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { Icon } from './components/Icon'
 import { SalesManagementPage } from './components/SalesManagementPage'
 import { appUrl, apps, departments, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
@@ -24,6 +24,8 @@ function Layout() {
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => { try { const v = localStorage.getItem('vigor.sidebar.collapsed'); return v === null ? true : v === '1' } catch { return true } })
+  const location = useLocation()
+  const autoExpandedRef = useRef(false)
   const toggleNav = () => {
     if (window.matchMedia('(max-width: 960px)').matches) {
       setSidebarOpen(open => !open)
@@ -31,6 +33,14 @@ function Layout() {
       setSidebarCollapsed(collapsed => { const next = !collapsed; try { localStorage.setItem('vigor.sidebar.collapsed', next ? '1' : '0') } catch {}; return next })
     }
   }
+
+  // 折叠态点击导航项：自动展开 → 跳转 → 跳转后延时折叠回
+  useEffect(() => {
+    if (!autoExpandedRef.current) return
+    autoExpandedRef.current = false
+    const timer = window.setTimeout(() => setSidebarCollapsed(true), 600)
+    return () => window.clearTimeout(timer)
+  }, [location.pathname])
   const [hasNewNotifications, setHasNewNotifications] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const previousPendingIdsRef = useRef<Set<string> | null>(null)
@@ -92,7 +102,7 @@ function Layout() {
   if (!session) return <LoginPage onLogin={login} />
 
   return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-    <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onClick={event => { if ((event.target as HTMLElement).closest('a')) setSidebarOpen(false) }}>
+    <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onClick={event => { const link = (event.target as HTMLElement).closest('a'); if (!link) return; setSidebarOpen(false); if (window.matchMedia('(min-width: 961px)').matches && sidebarCollapsed) { setSidebarCollapsed(false); autoExpandedRef.current = true } }}>
       <Link className="brand" to="/" aria-label="返回工作台首页"><span className="brand-mark">V</span><span>Vigor<br /><small>WORKBENCH</small></span></Link>
       <nav className="primary-nav" aria-label="主导航">
         <NavLink end to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-label="工作总览"><Icon name="grid" /><span className="nav-label">工作总览</span></NavLink>
