@@ -495,33 +495,53 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 }
 
 /* 组织人员选择页（独立新窗口） */
-.org-picker { min-height: 100dvh; display: flex; flex-direction: column; background: #f3f3ef; color: #1b2430; }
-.org-picker-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px clamp(20px, 4vw, 40px) 16px; border-bottom: 1px solid #d8d9d4; background: #fafaf8; }
-.org-picker-head h1 { margin: 6px 0 2px; font-size: 22px; }
-.org-picker-search { display: flex; align-items: center; gap: 9px; margin: 16px clamp(20px, 4vw, 40px) 0; padding: 0 13px; height: 42px; background: #fff; border: 1px solid #d8d9d4; border-radius: 8px; color: #76818a; }
-.org-picker-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 14px 'Noto Sans SC', sans-serif; color: #1b2430; }
-.org-picker-list { flex: 1; padding: 8px clamp(20px, 4vw, 40px) 24px; overflow-y: auto; }
-.org-dept { margin-top: 18px; }
-.org-dept-title { display: flex; align-items: center; gap: 8px; padding: 0 4px 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #61798a; }
-.org-dept-title span { border-radius: 10px; padding: 0 7px; background: #e6e8e4; color: #61798a; font: 11px 'DM Mono', monospace; }
-.org-team-title { padding: 4px; font-size: 12px; color: #8a97a1; }
-.org-person { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 11px; border: 1px solid transparent; border-radius: 8px; background: transparent; text-align: left; transition: background .12s ease, border-color .12s ease; }
-.org-person:hover { background: #fff; }
-.org-person.selected { background: #fff; border-color: #d92d20; }
-.org-check { width: 19px; height: 19px; flex: 0 0 19px; display: grid; place-items: center; border: 1.5px solid #b9c2c8; border-radius: 5px; color: #fff; }
+/* 组织选择页（参考 bmail「选择员工」弹窗） */
+.org-picker { min-height: 100dvh; display: flex; flex-direction: column; background: #fff; color: #1b2430; font-size: 14px; }
+.org-picker-head { display: flex; align-items: center; gap: 14px; padding: 13px 18px; background: #15202c; color: #fff; }
+.org-picker-head h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .02em; }
+.org-picker-selected { margin-left: auto; color: #c4ced6; font-size: 12px; }
+.org-picker-close { border: 0; background: transparent; color: #c4ced6; font-size: 16px; padding: 2px 8px; border-radius: 6px; cursor: pointer; }
+.org-picker-close:hover { background: rgba(255,255,255,.12); color: #fff; }
+.org-picker-tabs { display: flex; gap: 2px; padding: 0 16px; border-bottom: 1px solid #e6e9e5; background: #fafbf9; }
+.org-picker-tabs button { border: 0; background: transparent; padding: 11px 16px; font-size: 13px; color: #6a757b; cursor: pointer; border-bottom: 2px solid transparent; }
+.org-picker-tabs button.active { color: #15202c; font-weight: 700; border-bottom-color: #15202c; }
+.org-picker-search { display: flex; align-items: center; gap: 8px; margin: 12px 16px 0; padding: 0 12px; height: 38px; background: #f3f4f1; border: 1px solid #e2e5e0; border-radius: 8px; color: #8a97a1; }
+.org-picker-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 13px 'Noto Sans SC', sans-serif; color: #1b2430; }
+.org-picker-bulk { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px 0; }
+.org-picker-hint { color: #a61b14; font-size: 12px; }
+.org-picker-bulk-btns { display: flex; gap: 8px; }
+.org-picker-bulk-btns button { height: 28px; padding: 0 12px; border: 1px solid #d8d9d4; border-radius: 6px; background: #fff; color: #1b2430; font-size: 12px; }
+.org-picker-bulk-btns button:hover { background: #f5f5f2; }
+.org-picker-list { flex: 1; padding: 8px 10px 14px; overflow-y: auto; }
+.org-group { margin-top: 6px; }
+.org-group-head { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 7px; }
+.org-group-head:hover { background: #f4f5f2; }
+.org-group-name { font-weight: 700; font-size: 13px; color: #1b2430; }
+.org-group-dept { color: #8a97a1; font-size: 12px; }
+.org-group-count { color: #9aa3aa; font: 11px 'DM Mono', monospace; }
+.org-group-actions { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity .12s ease; }
+.org-group-head:hover .org-group-actions { opacity: 1; }
+.org-group-actions button { border: 0; background: transparent; color: #6a757b; font-size: 12px; padding: 3px 8px; border-radius: 5px; }
+.org-group-actions button:hover { background: #e9ece8; color: #1b2430; }
+.org-group-body { padding: 0 0 6px; }
+.org-person { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; text-align: left; }
+.org-person:hover { background: #f6f7f4; }
+.org-check { width: 18px; height: 18px; flex: 0 0 18px; display: grid; place-items: center; border: 1.5px solid #b9c2c8; border-radius: 4px; color: #fff; background: #fff; }
 .org-check.radio { border-radius: 50%; }
-.org-person.selected .org-check { background: #d92d20; border-color: #d92d20; }
-.org-avatar { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 50%; background: #15202c; color: #fff; font-size: 13px; font-weight: 600; }
-.org-person-main { display: grid; min-width: 0; }
-.org-person-main b { font-size: 14px; }
-.org-person-main small { color: #8a97a1; font: 11px 'DM Mono', monospace; }
-.org-person-meta { margin-left: auto; padding-left: 12px; color: #76818a; font-size: 12px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.org-picker-foot { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px clamp(20px, 4vw, 40px); border-top: 1px solid #d8d9d4; background: #fafaf8; }
-.org-picker-foot span { color: #61798a; font-size: 13px; }
-.org-picker-empty { padding: 60px 0; text-align: center; color: #8a97a1; }
-.org-picker-empty svg { color: #b9c2c8; }
-.org-picker-error { margin: 14px clamp(20px, 4vw, 40px) 0; padding: 11px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; white-space: pre-wrap; }
-.org-picker .primary-button:disabled { opacity: .4; cursor: not-allowed; }
+.org-person.selected .org-check, .org-group-head .org-check.checked { background: #15202c; border-color: #15202c; }
+.org-person-name { color: #222b31; font-size: 13px; }
+.org-person-en { color: #8a97a1; font: 11px 'DM Mono', monospace; }
+.org-person-role { margin-left: auto; color: #a9b1b6; font-size: 11px; }
+.org-flat-list { padding-top: 4px; }
+.org-picker-empty { padding: 50px 0; text-align: center; color: #8a97a1; font-size: 13px; }
+.org-picker-empty svg { color: #c3cacd; }
+.org-picker-error { margin: 10px 16px 0; padding: 10px 13px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 12px; white-space: pre-wrap; }
+.org-picker-foot { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; border-top: 1px solid #e6e9e5; background: #fff; }
+.org-picker-foot > span { color: #61798a; font-size: 13px; }
+.org-picker-foot-btns { display: flex; gap: 10px; }
+.org-btn-primary { height: 36px; padding: 0 26px; border: 0; border-radius: 7px; background: #15202c; color: #fff; font-size: 13px; font-weight: 600; }
+.org-btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.org-btn-plain { height: 36px; padding: 0 20px; border: 1px solid #d8d9d4; border-radius: 7px; background: #fff; color: #61798a; font-size: 13px; }
 
 /* 组织架构管理页（小模块卡片，逐级打开） */
 .org-chart-message { margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; }
@@ -564,22 +584,6 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-modal-fields input:focus, .org-modal-fields select:focus { outline: 2px solid #d92d20; outline-offset: -1px; }
 .org-modal-actions { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
 .org-modal-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; border-radius: 8px; height: 40px; padding: 0 18px; color: #61798a; }
-
-/* 组织选择页：批量选择（参考 bmail 选择员工弹窗） */
-.org-picker-bulk { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px clamp(20px, 4vw, 40px) 0; }
-.org-picker-hint { color: #a61b14; font-size: 12px; }
-.org-picker-bulk-btns { display: flex; gap: 8px; }
-.org-picker-bulk-btns button { height: 30px; padding: 0 13px; border: 1px solid #d8d9d4; border-radius: 6px; background: #fff; color: #1b2430; font-size: 12px; }
-.org-picker-bulk-btns button:hover { background: #f5f5f2; }
-.org-dept-title { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 6px; border: 0; background: transparent; text-align: left; font: 700 13px 'Noto Sans SC', sans-serif; color: #1b2430; border-radius: 7px; }
-.org-dept-title:hover { background: #fff; }
-.org-dept-title.all-selected { color: #d92d20; }
-.org-dept-caret { width: 16px; height: 16px; display: grid; place-items: center; border: 1.5px solid #b9c2c8; border-radius: 4px; color: #fff; flex: 0 0 16px; }
-.org-dept-title.all-selected .org-dept-caret { background: #d92d20; border-color: #d92d20; }
-.org-dept-count { border-radius: 10px; padding: 0 7px; background: #e6e8e4; color: #61798a; font: 11px 'DM Mono', monospace; }
-.org-dept-actions { margin-left: auto; display: flex; gap: 6px; }
-.org-dept-actions button { border: 0; background: transparent; color: #61798a; font-size: 12px; padding: 2px 6px; border-radius: 4px; }
-.org-dept-actions button:hover { background: #e9ece8; color: #1b2430; }
 
 /* 账号与权限：紧凑账号卡片 + 弹窗编辑 */
 .page-heading-actions { display: flex; align-items: center; gap: 12px; }
