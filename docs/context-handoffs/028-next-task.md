@@ -27,6 +27,10 @@
 - `knowledge-base`（企业知识库）：5 视口 0 溢出、0 裁切。
 - `sales-commission`（销售提成计算系统）：**平板 768 溢出（sw=817）、手机 390 溢出（sw=805）、桌面 3 视口各 1 处容器内裁切**。溢出元凶为一个无 class 的 `span`（疑似长数字/编号不换行）。该应用为独立业务系统，按其独立维护任务处理，不在本仓库修改。
 
+### 侧边栏折叠（前端交互优化）
+- 桌面端左侧栏可经顶栏汉堡按钮折叠为 72px 图标窄栏（品牌标记 + 图标 + 应用首字），再点展开；状态持久化到 localStorage（`vigor.sidebar.collapsed`）。
+- 移动端（≤960px）抽屉行为保持不变。折叠/展开均无横向溢出，生产构建通过。
+
 ## 本轮发现并修复的 install 回归（由 sync 提交引入）
 1. `pnpm-workspace.yaml` 丢失 `packages: - apps/*` → 已恢复。
 2. `pnpm-lock.yaml` 残留 `tencentcloud-sdk-nodejs@4.1.286`（`apps/bff/package.json` 已不含）→ 已重生成 lockfile 移除残留。
