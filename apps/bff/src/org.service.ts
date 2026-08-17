@@ -68,6 +68,31 @@ const seedFlat: PublicOrgPerson[] = [
   { id: 'erica', department: '总经理办公室', team: '总经理办公室', role: '部门负责人/管理岗/总经理', name: '呼延松', englishName: 'Erica' },
 ]
 
+// 与账号权限一致的岗位集合（与 auth/前端 roles 标签一致）
+const VALID_ROLE_LABELS = new Set(['总经理', '分管销售副总', '分管财务副总', '销售经理', '销售组长', '销售员', '项目跟进员', '采购经理', '采购组长', '采购员', '质量组', '人力总监', '行政专员', '财务经理', '会计', '船务经理', '船务操作员', '销售支持组', '市场组'])
+
+// 旧组织角色 → 账号权限岗位；已是合法岗位则原样返回
+function remapRole(department: string, team: string, oldRole: string): string {
+  const r = oldRole || ''
+  if (VALID_ROLE_LABELS.has(r)) return r
+  const lead = r.includes('负责人') || r.includes('管理岗')
+  if (department === '总经理办公室') {
+    if (r.includes('销售副总')) return '分管销售副总'
+    if (r.includes('财务副总')) return '分管财务副总'
+    return '总经理'
+  }
+  if (department === '采购部') { if (team.includes('质量')) return '质量组'; return lead ? '采购经理' : '采购员' }
+  if (department === '销售部') return lead ? '销售经理' : '销售员'
+  const pair: Record<string, [string, string]> = {
+    '船务部': ['船务经理', '船务操作员'], '财务部': ['财务经理', '会计'],
+    '市场运营组': ['市场组', '市场组'], '销售支持组': ['销售支持组', '销售支持组'],
+    '人力总经办': ['人力总监', '行政专员'],
+  }
+  const hit = pair[department]
+  if (hit) return lead ? hit[0] : hit[1]
+  return r
+}
+
 function flatToNested(flat: PublicOrgPerson[]): OrgDepartment[] {
   const order: string[] = []
   const map = new Map<string, { name: string; teamOrder: string[]; teams: Map<string, OrgPerson[]> }>()
@@ -89,15 +114,28 @@ export class OrgService implements OnModuleInit {
     try {
       const stored = JSON.parse(await readFile(config.orgFile, 'utf8'))
       if (Array.isArray(stored)) {
-        // v1：平铺人员 → 迁移到树结构
-        this.data = { version: 2, departments: flatToNested(stored) }
+        // v1：平铺人员 → 树结构 + 岗位统一
+        this.data = { version: 2, departments: flatToNested(stored.map(p => ({ ...p, role: remapRole(p.department, p.team, p.role) }))) }
         await this.persist()
         return
       }
-      if (stored && Array.isArray(stored.departments) && stored.departments.length) { this.data = stored; return }
+      if (stored && Array.isArray(stored.departments) && stored.departments.length) {
+        this.data = stored
+        if (this.remapLoaded()) await this.persist()
+        return
+      }
     } catch { /* 首次运行 */ }
-    this.data = { version: 2, departments: flatToNested(seedFlat) }
+    this.data = { version: 2, departments: flatToNested(seedFlat.map(p => ({ ...p, role: remapRole(p.department, p.team, p.role) }))) }
     await this.persist()
+  }
+
+  private remapLoaded(): boolean {
+    let changed = false
+    for (const d of this.data.departments) for (const t of d.teams) for (const p of t.persons) {
+      const next = remapRole(d.name, t.name, p.role)
+      if (next !== p.role) { p.role = next; changed = true }
+    }
+    return changed
   }
 
   private async persist() {
@@ -141,6 +179,7 @@ export class OrgService implements OnModuleInit {
   async addPerson(input: OrgPersonInput): Promise<PublicOrgPerson> {
     const { department, team, role, name, englishName } = input
     if (!department?.trim() || !team?.trim() || !role?.trim() || !name?.trim() || !englishName?.trim()) throw new Error('部门、二级部门、角色、姓名、英文名均必填。')
+    if (!VALID_ROLE_LABELS.has(role.trim())) throw new Error('角色必须为有效岗位（与账号权限一致）。')
     const d = this.data.departments.find(x => x.name === department.trim())
     if (!d) throw new Error('部门不存在，请先创建部门。')
     let t = d.teams.find(x => x.name === team.trim())
