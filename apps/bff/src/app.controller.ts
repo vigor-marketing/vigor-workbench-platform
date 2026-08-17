@@ -146,7 +146,9 @@ export class AppController {
   private async actorOrDemo(cookie: string | undefined, authorization: string | undefined, demoRole: string | undefined) {
     try {
       return await this.auth.actorFromRequest(cookie, authorization)
-    } catch {
+    } catch (error) {
+      // 内测隔离入口：仅当显式携带 X-Demo-Role 且 DEMO_MODE=true 时才回退；否则沿用原 401。
+      if (!demoRole) throw error
       return this.identity.actorFromDemoRole(demoRole)
     }
   }
