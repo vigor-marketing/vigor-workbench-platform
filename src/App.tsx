@@ -7,7 +7,7 @@ import { OrgPickerPage } from './components/OrgPickerPage'
 import { OrgChartPage } from './components/OrgChartPage'
 import { appUrl, apps, departments, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
 import { getUsers, isAllowed, saveUsers, type DemoUser, type PermissionMap } from './lib/demo-auth'
-import { changeServerPassword, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout } from './lib/server-auth'
+import { changeServerPassword, deleteServerUser, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout } from './lib/server-auth'
 import { fetchTodos } from './lib/platform-api'
 import './styles.css'
 
@@ -288,13 +288,75 @@ function PersonalAccountPage({ currentUser }: { currentUser: DemoUser }) {
 function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const [users, setUsers] = useState<any[]>([])
   const [notice, setNotice] = useState('')
-  const empty = { username: '', displayName: '', role: 'salesperson', password: '', teamId: 'sales-team-1', teamName: '销售一组', isAdmin: false, disabled: false }
-  const [draft, setDraft] = useState<any>(empty)
+  const [draft, setDraft] = useState<any>(null)
+  const empty = { username: '', displayName: '', role: 'salesperson', password: '', teamId: '', teamName: '', isAdmin: false, disabled: false }
   const refresh = async () => { try { setUsers(await getServerUsers()) } catch { setNotice('无法读取账号列表，请重新登录后再试。') } }
   useEffect(() => { void refresh() }, [])
-  const save = async (event: FormEvent) => { event.preventDefault(); try { await saveServerUser(draft.id ?? null, draft); setNotice(draft.id ? '账号资料已更新。' : '新账号已创建。'); setDraft(empty); await refresh() } catch (error) { setNotice(error instanceof Error ? error.message : '保存失败，请重试。') } }
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    try { await saveServerUser(draft.id ?? null, draft); setNotice(draft.id ? '账号资料已更新。' : '新账号已创建。'); setDraft(null); await refresh() }
+    catch (error) { setNotice(error instanceof Error ? error.message : '保存失败，请重试。') }
+  }
+  const toggleDisabled = async (user: any) => {
+    try { await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, disabled: !user.disabled, teamId: user.teamId, teamName: user.teamName }); await refresh() }
+    catch (error) { setNotice(error instanceof Error ? error.message : '操作失败。') }
+  }
+  const remove = async (user: any) => {
+    if (!window.confirm(`确定删除账号「${user.displayName}（${user.username}）」？此操作不可恢复。`)) return
+    try { await deleteServerUser(user.id); setNotice('账号已删除。'); await refresh() }
+    catch (error) { setNotice(error instanceof Error ? error.message : '删除失败。') }
+  }
   if (!currentUser.isAdmin) return <section className="page"><div className="state-card"><h2>无管理权限</h2><p>仅管理员可修改账号与岗位。</p></div></section>
-  return <section className="page account-admin-page"><div className="page-heading"><h1>账号与权限</h1><p>创建、编辑或停用工作台账号。岗位决定数据范围，应用入口权限请在“应用岗位权限”中配置。</p></div><div className="account-admin-layout"><section className="account-editor"><header><h2>{draft.id ? '编辑账号' : '新建账号'}</h2><button type="button" className="text-action" onClick={() => setDraft(empty)}>清空表单</button></header><form className="account-create-form" onSubmit={save}><label>账号<input required value={draft.username} onChange={e=>setDraft({...draft,username:e.target.value})} placeholder="例如：zhangsan" /></label><label>姓名<input required value={draft.displayName} onChange={e=>setDraft({...draft,displayName:e.target.value})} placeholder="员工姓名" /></label><label>岗位<select value={draft.role} onChange={e=>setDraft({...draft,role:e.target.value})}>{Object.entries(roles).map(([id,item])=><option value={id} key={id}>{item.label}</option>)}</select></label><label>销售小组 ID<input value={draft.teamId ?? ''} onChange={e=>setDraft({...draft,teamId:e.target.value})} placeholder="例如：sales-team-1" /></label><label>销售小组名称<input value={draft.teamName ?? ''} onChange={e=>setDraft({...draft,teamName:e.target.value})} placeholder="例如：销售一组" /></label><label>密码{draft.id ? '（留空则不修改）' : ''}<input required={!draft.id} minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e=>setDraft({...draft,password:e.target.value})} /></label><div className="account-option-row"><label><input type="checkbox" checked={draft.isAdmin} onChange={e=>setDraft({...draft,isAdmin:e.target.checked})} /> 管理员</label><label><input type="checkbox" checked={draft.disabled} onChange={e=>setDraft({...draft,disabled:e.target.checked})} /> 停用账号</label></div><button className="primary-button">{draft.id ? '保存账号变更' : '创建账号'}</button></form>{notice && <p className="account-feedback" role="status">{notice}</p>}</section><section className="account-directory"><header><div><h2>已配置账号</h2><p>{users.length} 个账号</p></div><button type="button" className="text-action" onClick={() => void refresh()}>刷新列表</button></header><div className="account-directory-list">{users.map(user => <button type="button" className={`account-directory-row ${draft.id === user.id ? 'selected' : ''}`} key={user.id} onClick={()=>setDraft({...user,password:''})}><span className="account-directory-mark">{user.displayName.slice(0,1)}</span><span><b>{user.displayName}</b><small>{user.username} · {roles[user.role as Role]?.label ?? user.role}{user.teamName ? ` · ${user.teamName}` : ''}</small></span><em>{user.disabled ? '已停用' : user.isAdmin ? '管理员' : '已启用'}</em></button>)}</div></section></div></section>
+  return <section className="page account-admin-page">
+    <div className="page-heading">
+      <div><h1>账号与权限</h1><p>创建、编辑、停用或删除工作台账号。岗位决定数据范围；应用入口权限请在“应用岗位权限”中配置。</p></div>
+      <div className="page-heading-actions"><button type="button" className="primary-button" onClick={() => setDraft(empty)}>新增账号 <Icon name="arrow" /></button><button type="button" className="text-action" onClick={() => void refresh()}>刷新列表</button></div>
+    </div>
+    {notice && <p className="account-feedback" role="status">{notice}</p>}
+    <div className="account-cards">
+      {users.map(user => {
+        const roleLabel = roles[user.role as Role]?.label ?? user.role
+        return <div className={'account-card' + (draft?.id === user.id ? ' editing' : '')} key={user.id}>
+          <span className="account-directory-mark">{user.displayName.slice(0, 1)}</span>
+          <div className="account-card-main">
+            <b>{user.displayName}</b>
+            <small>@{user.username}</small>
+            <div className="account-card-badges">
+              <em className="role">{roleLabel}</em>
+              {user.isAdmin && <em className="admin">管理员</em>}
+              <em className={user.disabled ? 'off' : 'on'}>{user.disabled ? '已停用' : '已启用'}</em>
+            </div>
+          </div>
+          <div className="account-card-actions">
+            <button type="button" onClick={() => setDraft({ ...user, password: '' })}>编辑</button>
+            <button type="button" onClick={() => void toggleDisabled(user)}>{user.disabled ? '启用' : '停用'}</button>
+            <button type="button" className="danger" onClick={() => void remove(user)}>删除</button>
+          </div>
+        </div>
+      })}
+    </div>
+    {draft && <div className="org-modal-backdrop" onClick={() => setDraft(null)}>
+      <form className="org-modal" onClick={e => e.stopPropagation()} onSubmit={save}>
+        <h3>{draft.id ? '编辑账号' : '新建账号'}</h3>
+        <div className="org-modal-fields">
+          <label>账号<input required value={draft.username} onChange={e => setDraft({ ...draft, username: e.target.value })} placeholder="例如：judy" /></label>
+          <label>姓名<input required value={draft.displayName} onChange={e => setDraft({ ...draft, displayName: e.target.value })} placeholder="员工姓名" /></label>
+          <label>岗位<select value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>{Object.entries(roles).map(([id, item]) => <option value={id} key={id}>{item.label}</option>)}</select></label>
+          <label>销售小组 ID<input value={draft.teamId ?? ''} onChange={e => setDraft({ ...draft, teamId: e.target.value })} placeholder="例如：sales-v1" /></label>
+          <label>销售小组名称<input value={draft.teamName ?? ''} onChange={e => setDraft({ ...draft, teamName: e.target.value })} placeholder="例如：V1(飓风之眼)" /></label>
+          <label>密码{draft.id ? '（留空则不修改）' : ''}<input required={!draft.id} minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e => setDraft({ ...draft, password: e.target.value })} /></label>
+          <div className="org-modal-checks">
+            <label><input type="checkbox" checked={draft.isAdmin} onChange={e => setDraft({ ...draft, isAdmin: e.target.checked })} /> 管理员</label>
+            <label><input type="checkbox" checked={draft.disabled} onChange={e => setDraft({ ...draft, disabled: e.target.checked })} /> 停用账号</label>
+          </div>
+        </div>
+        <div className="org-modal-actions">
+          <button type="submit" className="primary-button">{draft.id ? '保存账号变更' : '创建账号'}</button>
+          <button type="button" onClick={() => setDraft(null)}>取消</button>
+        </div>
+      </form>
+    </div>}
+  </section>
 }
 
 function AppPermissionAdmin({ currentUser }: { currentUser: DemoUser }) {

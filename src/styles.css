@@ -576,3 +576,26 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-dept-actions { margin-left: auto; display: flex; gap: 6px; }
 .org-dept-actions button { border: 0; background: transparent; color: #61798a; font-size: 12px; padding: 2px 6px; border-radius: 4px; }
 .org-dept-actions button:hover { background: #e9ece8; color: #1b2430; }
+
+/* 账号与权限：紧凑账号卡片 + 弹窗编辑 */
+.page-heading-actions { display: flex; align-items: center; gap: 12px; }
+.account-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 18px; }
+.account-card { display: flex; gap: 11px; align-items: flex-start; border: 1px solid #e2e4df; border-radius: 12px; background: #fff; padding: 13px 14px; }
+.account-card.editing { border-color: #d92d20; box-shadow: 0 0 0 2px rgba(217, 45, 32, .12); }
+.account-card-main { min-width: 0; display: grid; gap: 2px; }
+.account-card-main b { font-size: 14px; color: #1b2430; }
+.account-card-main small { color: #8a97a1; font: 11px 'DM Mono', monospace; }
+.account-card-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.account-card-badges em { font-style: normal; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+.account-card-badges em.role { background: #eef0ec; color: #4a555c; }
+.account-card-badges em.admin { background: #fff0ee; color: #a61b14; }
+.account-card-badges em.on { background: #edf7ef; color: #24643b; }
+.account-card-badges em.off { background: #f2f3f3; color: #737c81; }
+.account-card-actions { margin-left: auto; display: flex; flex-direction: column; gap: 5px; }
+.account-card-actions button { border: 1px solid #e0e3df; background: #fff; border-radius: 7px; font-size: 11px; color: #61798a; padding: 4px 10px; white-space: nowrap; }
+.account-card-actions button:hover { background: #f5f5f2; color: #1b2430; }
+.account-card-actions button.danger:hover { background: #fff0ee; color: #a61b14; border-color: #f3c4bc; }
+.org-modal-fields select { height: 40px; padding: 0 12px; border: 1px solid #d8d9d4; border-radius: 8px; font: 14px 'Noto Sans SC', sans-serif; color: #1b2430; background: #fff; }
+.org-modal-checks { display: flex; gap: 18px; padding: 4px 0; }
+.org-modal-checks label { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #424c52; }
+.org-modal-checks input { accent-color: #d92d20; }

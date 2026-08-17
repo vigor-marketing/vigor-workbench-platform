@@ -27,7 +27,7 @@ export class AuthService {
   }
 
   async fromToken(token:string){const [head,payload,signature]=token.split('.');if(!head||!payload||!signature||this.secret().length<32)throw new UnauthorizedException('登录已失效。');const expected=crypto.createHmac('sha256',this.secret()).update(head+'.'+payload).digest('base64url');const a=Buffer.from(signature),b=Buffer.from(expected);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))throw new UnauthorizedException('登录已失效。');let data:any;try{data=JSON.parse(Buffer.from(payload,'base64url').toString('utf8'))}catch{throw new UnauthorizedException('登录已失效。')}if(data.exp<Math.floor(Date.now()/1000))throw new UnauthorizedException('登录已过期。');const user=(await this.load()).users.find(item=>item.id===data.sub&&!item.disabled);if(!user)throw new UnauthorizedException('账号不可用。');return this.publicUser(user)}
- publicUser(user:UserRecord){return {id:user.id,username:user.username,displayName:user.displayName,role:user.role,isAdmin:user.isAdmin,organizationScope:roles[user.role].organizationScope,teamId:user.teamId,teamName:user.teamName}}
+ publicUser(user:UserRecord){return {id:user.id,username:user.username,displayName:user.displayName,role:user.role,isAdmin:user.isAdmin,organizationScope:roles[user.role].organizationScope,teamId:user.teamId,teamName:user.teamName,disabled:user.disabled===true}}
  private issue(user:UserRecord){if(this.secret().length<32)throw new UnauthorizedException('服务端会话密钥未配置。');const head=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),payload=Buffer.from(JSON.stringify({sub:user.id,iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+28800})).toString('base64url');return head+'.'+payload+'.'+crypto.createHmac('sha256',this.secret()).update(head+'.'+payload).digest('base64url')}
 
   async listUsers() {
@@ -55,6 +55,15 @@ export class AuthService {
     }
     await this.persist()
     return this.publicUser(user)
+  }
+
+  async deleteUser(id: string) {
+    const store = await this.load()
+    const idx = store.users.findIndex(item => item.id === id)
+    if (idx < 0) throw new Error('账号不存在。')
+    store.users.splice(idx, 1)
+    await this.persist()
+    return { ok: true }
   }
 
   async changePassword(actorId: string, currentPassword: string, nextPassword: string) {

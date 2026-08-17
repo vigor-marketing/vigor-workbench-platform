@@ -89,6 +89,12 @@ export class AppController {
     return this.auth.saveUser({ ...body, role: body?.role as any }).catch(error => { throw new BadRequestException(error.message) })
   }
 
+  @Delete('admin/users/:id')
+  async deleteUser(@Param('id') id: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) {
+    await this.admin(cookie, authorization)
+    return this.auth.deleteUser(id).catch(error => { throw new BadRequestException(error.message) })
+  }
+
   @Post('auth/change-password')
   async changePassword(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: { currentPassword?: string; nextPassword?: string }) {
     if (!body?.currentPassword || !body?.nextPassword) throw new BadRequestException('请输入当前密码和新密码。')

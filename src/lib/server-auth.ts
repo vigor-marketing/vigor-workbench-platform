@@ -35,6 +35,10 @@ export async function saveServerUser(id: string | null, input: Record<string, un
   return request(id ? `admin/users/${id}` : 'admin/users', { method: id ? 'PUT' : 'POST', body: JSON.stringify(input) })
 }
 
+export async function deleteServerUser(id: string) {
+  return request(`admin/users/${id}`, { method: 'DELETE' })
+}
+
 export async function changeServerPassword(currentPassword: string, nextPassword: string) {
   return request('auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, nextPassword }) })
 }
