@@ -37,6 +37,13 @@
 - 前端选择页：`/org-picker?mode=single|multi&title=…`（独立新窗口，登录后访问），支持搜索、按部门分组、单选/多选；确认后 `window.opener.postMessage({type:'vigor.org.picker.result',mode,persons},'*')` 并关闭窗口。
 - 供其他程序调用：`window.open('<工作台>/org-picker?mode=multi')`，监听 message 事件即可。
 
+### 组织架构功能完整化（账号 + 可视化 + 可编辑 + 外部调用）
+- 已为 49 人创建工作台账号（初始密码 `Vigor@2026`，首次登录后请在个人账号改密），存于 CVM `users.json`（已备份旧文件）。
+- org 数据改为文件存储（`/var/lib/vigor-workbench/org.json`，0600 root），支持 CRUD：`POST/PUT/DELETE /api/org/persons`（仅管理员会话）。
+- 「账号与权限」下新增**组织架构**管理页 `/admin/org-chart`：可视化部门→团队→人员，可增删改，改动即时生效并供选择器/API 调用。
+- 组织选择页 `/org-picker` 参考 bmail「选择员工」弹窗增强：全选/清空所有/全选本部门/清空本部门、点部门标题切换全选、模糊搜索；仍支持 `mode=single|multi` + postMessage 回传 + `X-Picker-Token` 免登录。
+- 相关提交：`5813e9c`（org CRUD + 组织架构页）、`982be69`（选择页批量选择）。
+
 ## 本轮发现并修复的 install 回归（由 sync 提交引入）
 1. `pnpm-workspace.yaml` 丢失 `packages: - apps/*` → 已恢复。
 2. `pnpm-lock.yaml` 残留 `tencentcloud-sdk-nodejs@4.1.286`（`apps/bff/package.json` 已不含）→ 已重生成 lockfile 移除残留。
