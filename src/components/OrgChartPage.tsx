@@ -107,63 +107,63 @@ export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean
   const editorTitle = editor ? editor.kind === 'department' ? (editor.mode === 'add' ? '新增部门' : '编辑部门') : editor.kind === 'team' ? (editor.mode === 'add' ? '新增二级部门' : '编辑二级部门') : (editor.mode === 'add' ? '新增人员' : '编辑人员') : ''
   const departments = tree.map(d => d.department)
 
-  return <section className="org-chart-page">
-    <header className="page-heading">
-      <div><h1>组织架构</h1><p>共 {total} 人 · {tree.length} 个部门。点击部门/二级部门展开查看与修改，结果即时供选择器与 API 调用。</p></div>
-      <button type="button" className="primary-button" onClick={() => openEditor({ kind: 'department', mode: 'add' })}>新增部门 <Icon name="arrow" /></button>
-    </header>
+  return <section className="page org-chart-page">
+    <div className="page-heading">
+      <div><h1>组织架构</h1><p>共 {total} 人 · {tree.length} 个部门，点击展开查看与修改</p></div>
+      <button type="button" className="primary-button" onClick={() => openEditor({ kind: 'department', mode: 'add' })}>新增部门</button>
+    </div>
 
     {message && <p className="org-chart-message" role="status">{message}</p>}
 
-    <div className="org-chart">
+    <div className="org-tree">
       {tree.map(d => {
         const open = openDepts.has(d.department)
         const count = d.teams.reduce((m, t) => m + t.persons.length, 0)
-        return <div className={'org-card' + (open ? ' open' : '')} key={d.department}>
-          <button type="button" className="org-card-head" onClick={() => toggleDept(d.department)} aria-expanded={open}>
-            <span className="org-card-mark">{d.department.slice(0, 1)}</span>
-            <span className="org-card-title">{d.department}</span>
-            <span className="org-card-count">{count} 人</span>
-            <span className={'org-chevron' + (open ? ' open' : '')}><Icon name="arrow" size={14} /></span>
-          </button>
-          <div className="org-card-body">
-            <div className="org-card-tools">
-              <button type="button" onClick={() => openEditor({ kind: 'team', mode: 'add', department: d.department })}>+ 二级部门</button>
+        return <div className="org-node" key={d.department}>
+          <div className="org-node-head" onClick={() => toggleDept(d.department)}>
+            <span className={'org-twisty' + (open ? ' open' : '')}><Icon name="arrow" size={14} /></span>
+            <span className="org-node-name">{d.department}</span>
+            <span className="org-node-count">{count}</span>
+            <span className="org-node-actions" onClick={e => e.stopPropagation()}>
+              <button type="button" onClick={() => openEditor({ kind: 'team', mode: 'add', department: d.department })}>＋二级部门</button>
               <button type="button" onClick={() => openEditor({ kind: 'department', mode: 'edit', oldName: d.department })}>编辑</button>
               <button type="button" className="danger" onClick={() => void removeDept(d)}>删除</button>
-            </div>
+            </span>
+          </div>
+          {open && <div className="org-node-children">
             {d.teams.map(t => {
               const key = d.department + '|' + t.team
               const tOpen = openTeams.has(key)
-              return <div className={'org-team' + (tOpen ? ' open' : '')} key={key}>
-                <button type="button" className="org-team-head" onClick={() => toggleTeam(key)} aria-expanded={tOpen}>
-                  <span className="org-team-name">{t.team}</span>
-                  <span className="org-card-count">{t.persons.length} 人</span>
-                  <span className={'org-chevron' + (tOpen ? ' open' : '')}><Icon name="arrow" size={12} /></span>
-                </button>
-                <div className="org-team-body">
-                  <div className="org-card-tools">
-                    <button type="button" onClick={() => openEditor({ kind: 'person', mode: 'add', department: d.department, team: t.team })}>+ 人员</button>
+              return <div className="org-node" key={key}>
+                <div className="org-node-head" onClick={() => toggleTeam(key)}>
+                  <span className={'org-twisty' + (tOpen ? ' open' : '')}><Icon name="arrow" size={13} /></span>
+                  <span className="org-node-name">{t.team}</span>
+                  <span className="org-node-count">{t.persons.length}</span>
+                  <span className="org-node-actions" onClick={e => e.stopPropagation()}>
+                    <button type="button" onClick={() => openEditor({ kind: 'person', mode: 'add', department: d.department, team: t.team })}>＋人员</button>
                     <button type="button" onClick={() => openEditor({ kind: 'team', mode: 'edit', department: d.department, oldTeam: t.team })}>编辑</button>
                     <button type="button" className="danger" onClick={() => void removeTeam(d, t.team)}>删除</button>
-                  </div>
-                  {t.persons.map(p => <div className="org-person-row" key={p.id}>
-                    <span className="org-avatar">{p.name.slice(0, 1)}</span>
-                    <span className="org-person-main"><b>{p.name}</b><small>{p.englishName}{p.role ? ' · ' + p.role : ''}</small></span>
-                    <span className="org-person-row-actions">
+                  </span>
+                </div>
+                {tOpen && <div className="org-node-children org-people">
+                  {t.persons.map(p => <div className="org-person" key={p.id}>
+                    <span className="org-dot" />
+                    <span className="org-person-name">{p.name}</span>
+                    <span className="org-person-meta">{p.englishName}{p.role ? ' · ' + p.role : ''}</span>
+                    <span className="org-person-actions">
                       <button type="button" onClick={() => openEditor({ kind: 'person', mode: 'edit', id: p.id })}>编辑</button>
                       <button type="button" className="danger" onClick={() => void removePerson(p)}>删除</button>
                     </span>
                   </div>)}
-                  {t.persons.length === 0 && <p className="org-empty">暂无人员，点上方「+ 人员」添加。</p>}
-                </div>
+                  {t.persons.length === 0 && <p className="org-empty">暂无人员，点「＋人员」添加。</p>}
+                </div>}
               </div>
             })}
-            {d.teams.length === 0 && <p className="org-empty">暂无二级部门，点上方「+ 二级部门」创建。</p>}
-          </div>
+            {d.teams.length === 0 && <p className="org-empty">暂无二级部门，点「＋二级部门」创建。</p>}
+          </div>}
         </div>
       })}
-      {tree.length === 0 && <div className="org-picker-empty"><p>暂无部门，点右上角「新增部门」创建。</p></div>}
+      {tree.length === 0 && <div className="org-empty" style={{ padding: 30, textAlign: 'center' }}>暂无部门，点右上角「新增部门」创建。</div>}
     </div>
 
     {editor && <div className="org-modal-backdrop" onClick={() => setEditor(null)}>
