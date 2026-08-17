@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Headers, HttpException, Param, Patch, Post, Put, Res, UnauthorizedException } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Headers, HttpException, Param, Patch, Post, Put, Query, Res, UnauthorizedException } from '@nestjs/common'
 import crypto from 'node:crypto'
 import { config } from './config.js'
 import { AppsService } from './apps.service.js'
@@ -196,6 +196,19 @@ export class AppController {
   async orgPersons(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.list() }
   @Get('org/departments')
   async orgDepartments(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.departments() }
+
+  @Post('org/departments')
+  async createOrgDepartment(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) { await this.admin(cookie, authorization); return this.org.addDepartment(body?.name ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+  @Put('org/departments/:name')
+  async renameOrgDepartment(@Param('name') name: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) { await this.admin(cookie, authorization); return this.org.renameDepartment(name, body?.name ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+  @Delete('org/departments/:name')
+  async deleteOrgDepartment(@Param('name') name: string, @Query('force') force?: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.org.deleteDepartment(name, force === 'true').catch(error => { throw new BadRequestException(error.message) }) }
+  @Post('org/teams')
+  async createOrgTeam(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { department?: string; team?: string }) { await this.admin(cookie, authorization); return this.org.addTeam(body?.department ?? '', body?.team ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+  @Put('org/teams/:team')
+  async renameOrgTeam(@Param('team') team: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { department?: string; team?: string }) { await this.admin(cookie, authorization); return this.org.renameTeam(body?.department ?? '', team, body?.team ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+  @Delete('org/teams')
+  async deleteOrgTeam(@Query('department') department: string, @Query('team') team: string, @Query('force') force?: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.org.deleteTeam(department, team, force === 'true').catch(error => { throw new BadRequestException(error.message) }) }
 
   @Post('org/persons')
   async createOrgPerson(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: OrgPersonInput) { await this.admin(cookie, authorization); return this.org.addPerson(body ?? {}).catch(error => { throw new BadRequestException(error.message) }) }

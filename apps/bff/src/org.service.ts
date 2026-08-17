@@ -4,12 +4,19 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { config } from './config.js'
 
-export type OrgPerson = { id: string; department: string; team: string; role: string; name: string; englishName: string }
-export type OrgTeamNode = { team: string; persons: OrgPerson[] }
+// 树结构：部门 → 二级部门(团队) → 人员
+export type OrgPerson = { id: string; role: string; name: string; englishName: string }
+export type OrgTeam = { name: string; persons: OrgPerson[] }
+export type OrgDepartment = { name: string; teams: OrgTeam[] }
+export type OrgData = { version: number; departments: OrgDepartment[] }
+
+// 对外返回：人员携带 department/team 便于扁平化调用
+export type PublicOrgPerson = OrgPerson & { department: string; team: string }
+export type OrgTeamNode = { team: string; persons: PublicOrgPerson[] }
 export type OrgDepartmentNode = { department: string; teams: OrgTeamNode[] }
 export type OrgPersonInput = { department?: string; team?: string; role?: string; name?: string; englishName?: string }
 
-const seedPersons: OrgPerson[] = [
+const seedFlat: PublicOrgPerson[] = [
   { id: 'judy', department: '船务部', team: '船务部', role: '部门负责人/管理岗', name: '吴琼', englishName: 'Judy' },
   { id: 'yvonne', department: '船务部', team: '船务部', role: '成员', name: '袁晔', englishName: 'Yvonne' },
   { id: 'yolo', department: '船务部', team: '船务部', role: '成员', name: '李垚', englishName: 'Yolo' },
@@ -61,78 +68,110 @@ const seedPersons: OrgPerson[] = [
   { id: 'erica', department: '总经理办公室', team: '总经理办公室', role: '部门负责人/管理岗/总经理', name: '呼延松', englishName: 'Erica' },
 ]
 
+function flatToNested(flat: PublicOrgPerson[]): OrgDepartment[] {
+  const order: string[] = []
+  const map = new Map<string, { name: string; teamOrder: string[]; teams: Map<string, OrgPerson[]> }>()
+  for (const p of flat) {
+    let d = map.get(p.department)
+    if (!d) { d = { name: p.department, teamOrder: [], teams: new Map() }; map.set(p.department, d); order.push(p.department) }
+    let t = d.teams.get(p.team)
+    if (!t) { t = []; d.teams.set(p.team, t); d.teamOrder.push(p.team) }
+    t.push({ id: p.id, role: p.role, name: p.name, englishName: p.englishName })
+  }
+  return order.map(name => { const d = map.get(name)!; return { name, teams: d.teamOrder.map(t => ({ name: t, persons: d.teams.get(t)! })) } })
+}
+
 @Injectable()
 export class OrgService implements OnModuleInit {
-  private persons: OrgPerson[] = []
+  private data: OrgData = { version: 2, departments: [] }
 
   async onModuleInit() {
     try {
       const stored = JSON.parse(await readFile(config.orgFile, 'utf8'))
-      if (Array.isArray(stored) && stored.length) { this.persons = stored; return }
-    } catch { /* 首次运行或文件损坏时用种子数据 */ }
-    this.persons = seedPersons
+      if (Array.isArray(stored)) {
+        // v1：平铺人员 → 迁移到树结构
+        this.data = { version: 2, departments: flatToNested(stored) }
+        await this.persist()
+        return
+      }
+      if (stored && Array.isArray(stored.departments) && stored.departments.length) { this.data = stored; return }
+    } catch { /* 首次运行 */ }
+    this.data = { version: 2, departments: flatToNested(seedFlat) }
     await this.persist()
   }
 
   private async persist() {
     await mkdir(dirname(config.orgFile), { recursive: true })
-    await writeFile(config.orgFile, JSON.stringify(this.persons, null, 2), { mode: 0o600 })
+    await writeFile(config.orgFile, JSON.stringify(this.data, null, 2), { mode: 0o600 })
   }
 
-  list(): OrgPerson[] { return this.persons }
-
-  tree(): OrgDepartmentNode[] {
-    const order: string[] = []
-    const map = new Map<string, { department: string; teamOrder: string[]; teams: Map<string, OrgPerson[]> }>()
-    for (const p of this.persons) {
-      let d = map.get(p.department)
-      if (!d) { d = { department: p.department, teamOrder: [], teams: new Map() }; map.set(p.department, d); order.push(p.department) }
-      let t = d.teams.get(p.team)
-      if (!t) { t = []; d.teams.set(p.team, t); d.teamOrder.push(p.team) }
-      t.push(p)
-    }
-    return order.map(dep => {
-      const d = map.get(dep)!
-      return { department: dep, teams: d.teamOrder.map(t => ({ team: t, persons: d.teams.get(t)! })) }
-    })
+  private findPerson(id: string): { d: OrgDepartment; t: OrgTeam; p: OrgPerson } | null {
+    for (const d of this.data.departments) for (const t of d.teams) { const p = t.persons.find(x => x.id === id); if (p) return { d, t, p } }
+    return null
   }
-
-  departments(): string[] { return [...new Set(this.persons.map(p => p.department))] }
-
   private makeId(englishName: string): string {
     const base = (englishName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || crypto.randomUUID().slice(0, 8)
+    const taken = () => { for (const d of this.data.departments) for (const t of d.teams) if (t.persons.some(p => p.id === base)) return true; return false }
     let id = base, n = 2
-    while (this.persons.some(p => p.id === id)) id = `${base}-${n++}`
+    while (taken()) id = `${base}-${n++}`
     return id
   }
+  private toPublic(p: OrgPerson, d: OrgDepartment, t: OrgTeam): PublicOrgPerson { return { ...p, department: d.name, team: t.name } }
 
-  async addPerson(input: OrgPersonInput): Promise<OrgPerson> {
+  // ---- 读取 ----
+  tree(): OrgDepartmentNode[] {
+    return this.data.departments.map(d => ({ department: d.name, teams: d.teams.map(t => ({ team: t.name, persons: t.persons.map(p => this.toPublic(p, d, t)) })) }))
+  }
+  list(): PublicOrgPerson[] {
+    return this.data.departments.flatMap(d => d.teams.flatMap(t => t.persons.map(p => this.toPublic(p, d, t))))
+  }
+  departments(): string[] { return this.data.departments.map(d => d.name) }
+
+  // ---- 部门 CRUD ----
+  async addDepartment(name: string) { const n = name?.trim(); if (!n) throw new Error('部门名称必填。'); if (this.data.departments.some(d => d.name === n)) throw new Error('部门已存在。'); this.data.departments.push({ name: n, teams: [] }); await this.persist(); return { ok: true } }
+  async renameDepartment(oldName: string, newName: string) { const n = newName?.trim(); if (!n) throw new Error('部门名称必填。'); const d = this.data.departments.find(x => x.name === oldName); if (!d) throw new Error('部门不存在。'); if (this.data.departments.some(x => x.name === n && x !== d)) throw new Error('部门已存在。'); d.name = n; await this.persist(); return { ok: true } }
+  async deleteDepartment(name: string, force = false) { const d = this.data.departments.find(x => x.name === name); if (!d) throw new Error('部门不存在。'); const count = d.teams.reduce((m, t) => m + t.persons.length, 0); if (count > 0 && !force) throw new Error(`该部门下有 ${count} 人，删除需确认（force=true）。`); this.data.departments = this.data.departments.filter(x => x !== d); await this.persist(); return { ok: true } }
+
+  // ---- 二级部门 CRUD ----
+  async addTeam(department: string, team: string) { const t = team?.trim(); if (!t) throw new Error('二级部门名称必填。'); const d = this.data.departments.find(x => x.name === department?.trim()); if (!d) throw new Error('部门不存在。'); if (d.teams.some(x => x.name === t)) throw new Error('二级部门已存在。'); d.teams.push({ name: t, persons: [] }); await this.persist(); return { ok: true } }
+  async renameTeam(department: string, oldTeam: string, newTeam: string) { const t = newTeam?.trim(); if (!t) throw new Error('二级部门名称必填。'); const d = this.data.departments.find(x => x.name === department?.trim()); if (!d) throw new Error('部门不存在。'); const tm = d.teams.find(x => x.name === oldTeam); if (!tm) throw new Error('二级部门不存在。'); if (d.teams.some(x => x.name === t && x !== tm)) throw new Error('二级部门已存在。'); tm.name = t; await this.persist(); return { ok: true } }
+  async deleteTeam(department: string, team: string, force = false) { const d = this.data.departments.find(x => x.name === department?.trim()); if (!d) throw new Error('部门不存在。'); const tm = d.teams.find(x => x.name === team?.trim()); if (!tm) throw new Error('二级部门不存在。'); const count = tm.persons.length; if (count > 0 && !force) throw new Error(`该二级部门下有 ${count} 人，删除需确认（force=true）。`); d.teams = d.teams.filter(x => x !== tm); await this.persist(); return { ok: true } }
+
+  // ---- 人员 CRUD ----
+  async addPerson(input: OrgPersonInput): Promise<PublicOrgPerson> {
     const { department, team, role, name, englishName } = input
-    if (!department?.trim() || !team?.trim() || !role?.trim() || !name?.trim() || !englishName?.trim()) throw new Error('部门、团队、角色、姓名、英文名均必填。')
-    const person: OrgPerson = { id: this.makeId(englishName), department: department.trim(), team: team.trim(), role: role.trim(), name: name.trim(), englishName: englishName.trim() }
-    this.persons.push(person)
+    if (!department?.trim() || !team?.trim() || !role?.trim() || !name?.trim() || !englishName?.trim()) throw new Error('部门、二级部门、角色、姓名、英文名均必填。')
+    const d = this.data.departments.find(x => x.name === department.trim())
+    if (!d) throw new Error('部门不存在，请先创建部门。')
+    let t = d.teams.find(x => x.name === team.trim())
+    if (!t) { t = { name: team.trim(), persons: [] }; d.teams.push(t) }
+    const p: OrgPerson = { id: this.makeId(englishName), role: role.trim(), name: name.trim(), englishName: englishName.trim() }
+    t.persons.push(p)
     await this.persist()
-    return person
+    return this.toPublic(p, d, t)
   }
-
-  async updatePerson(id: string, input: OrgPersonInput): Promise<OrgPerson> {
-    const idx = this.persons.findIndex(p => p.id === id)
-    if (idx < 0) throw new Error('人员不存在。')
-    const next: OrgPerson = { ...this.persons[idx] }
-    for (const key of ['department', 'team', 'role', 'name', 'englishName'] as const) {
-      const v = input[key]?.trim()
-      if (v) next[key] = v
+  async updatePerson(id: string, input: OrgPersonInput): Promise<PublicOrgPerson> {
+    const f = this.findPerson(id); if (!f) throw new Error('人员不存在。')
+    const { department, team, role, name, englishName } = input
+    if (name?.trim()) f.p.name = name.trim()
+    if (englishName?.trim()) f.p.englishName = englishName.trim()
+    if (role?.trim()) f.p.role = role.trim()
+    if (department?.trim() && team?.trim() && (department.trim() !== f.d.name || team.trim() !== f.t.name)) {
+      f.t.persons = f.t.persons.filter(x => x !== f.p)
+      const nd = this.data.departments.find(x => x.name === department.trim())
+      if (!nd) throw new Error('目标部门不存在。')
+      let nt = nd.teams.find(x => x.name === team.trim())
+      if (!nt) { nt = { name: team.trim(), persons: [] }; nd.teams.push(nt) }
+      nt.persons.push(f.p)
+      await this.persist()
+      return this.toPublic(f.p, nd, nt)
     }
-    if (!next.name || !next.englishName) throw new Error('姓名与英文名不能为空。')
-    this.persons[idx] = next
     await this.persist()
-    return next
+    return this.toPublic(f.p, f.d, f.t)
   }
-
   async deletePerson(id: string): Promise<{ ok: true }> {
-    const before = this.persons.length
-    this.persons = this.persons.filter(p => p.id !== id)
-    if (this.persons.length === before) throw new Error('人员不存在。')
+    const f = this.findPerson(id); if (!f) throw new Error('人员不存在。')
+    f.t.persons = f.t.persons.filter(x => x !== f.p)
     await this.persist()
     return { ok: true }
   }

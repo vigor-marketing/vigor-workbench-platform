@@ -523,29 +523,43 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-picker-error { margin: 14px clamp(20px, 4vw, 40px) 0; padding: 11px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; white-space: pre-wrap; }
 .org-picker .primary-button:disabled { opacity: .4; cursor: not-allowed; }
 
-/* 组织架构管理页 */
+/* 组织架构管理页（部门/二级部门折叠卡片，可增删改） */
 .org-chart-message { margin: 0 0 18px; padding: 11px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; }
-.org-chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-.org-chart-card { border: 1px solid #e2e4df; border-radius: 12px; background: #fff; overflow: hidden; }
-.org-chart-card-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid #eceee9; background: #fafaf8; }
-.org-chart-card-head h2 { margin: 0; font-size: 15px; }
-.org-chart-card-head span { color: #8a97a1; font: 11px 'DM Mono', monospace; }
-.org-chart-team { padding: 10px 12px 4px; }
-.org-chart-team h3 { margin: 0 0 6px; font-size: 12px; color: #61798a; }
-.org-chart-person { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
-.org-chart-person:hover { background: #f5f5f2; }
-.org-chart-person-actions { margin-left: auto; display: flex; gap: 4px; }
-.org-chart-person-actions button { border: 0; background: transparent; color: #61798a; font-size: 12px; padding: 3px 7px; border-radius: 5px; }
-.org-chart-person-actions button:hover { background: #e9ece8; color: #1b2430; }
-.org-chart-person-actions button.danger:hover { background: #fff0ee; color: #a61b14; }
-.org-chart-editor { margin-top: 22px; border: 1px solid #e2e4df; border-radius: 12px; background: #fff; padding: 18px 20px; }
-.org-chart-editor h3 { margin: 0 0 14px; font-size: 16px; }
-.org-chart-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.org-chart-fields label { display: grid; gap: 5px; font-size: 12px; color: #61798a; }
-.org-chart-fields input { height: 38px; padding: 0 11px; border: 1px solid #d8d9d4; border-radius: 7px; font: 14px 'Noto Sans SC', sans-serif; color: #1b2430; background: #fff; }
-.org-chart-fields input:focus { outline: 2px solid #d92d20; outline-offset: -1px; }
-.org-chart-editor-actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
-.org-chart-editor-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; border-radius: 7px; height: 38px; padding: 0 16px; color: #61798a; }
+.org-chart { display: grid; gap: 14px; }
+.org-card { border: 1px solid #e2e4df; border-radius: 14px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(20,24,30,.04); }
+.org-card-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 18px; border: 0; background: linear-gradient(180deg, #fff, #fafaf8); text-align: left; cursor: pointer; }
+.org-card-head:hover { background: #f6f6f3; }
+.org-card-mark { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 9px; background: #15202c; color: #fff; font-size: 15px; font-weight: 700; }
+.org-card-title { font-size: 16px; font-weight: 700; color: #1b2430; }
+.org-card-count { margin-left: auto; border-radius: 12px; padding: 2px 9px; background: #eceee9; color: #61798a; font: 11px 'DM Mono', monospace; }
+.org-chevron { display: grid; place-items: center; color: #8a97a1; transition: transform .2s ease; }
+.org-chevron.open { transform: rotate(90deg); }
+.org-card-body { padding: 4px 16px 16px; border-top: 1px solid #f0f1ed; }
+.org-card-tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
+.org-card-tools button { border: 1px solid #d8d9d4; background: #fff; border-radius: 6px; height: 28px; padding: 0 11px; font-size: 12px; color: #61798a; }
+.org-card-tools button:hover { background: #f5f5f2; color: #1b2430; }
+.org-card-tools button.danger:hover { background: #fff0ee; color: #a61b14; border-color: #f3c4bc; }
+.org-team { margin-top: 8px; border: 1px solid #e8eae5; border-radius: 10px; background: #fbfbf9; overflow: hidden; }
+.org-team-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.org-team-head:hover { background: #f4f4f0; }
+.org-team-name { font-size: 13px; font-weight: 600; color: #2a3640; }
+.org-team-body { padding: 0 12px 10px; }
+.org-person-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
+.org-person-row:hover { background: #fff; }
+.org-person-row-actions { margin-left: auto; display: flex; gap: 4px; }
+.org-person-row-actions button { border: 0; background: transparent; color: #61798a; font-size: 12px; padding: 3px 7px; border-radius: 5px; }
+.org-person-row-actions button:hover { background: #e9ece8; color: #1b2430; }
+.org-person-row-actions button.danger:hover { background: #fff0ee; color: #a61b14; }
+.org-empty { margin: 4px 8px 8px; color: #8a97a1; font-size: 12px; }
+.org-modal-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(10,12,14,.46); padding: 20px; }
+.org-modal { width: min(440px, 100%); background: #fff; border-radius: 14px; padding: 22px 24px; box-shadow: 0 18px 50px rgba(0,0,0,.22); }
+.org-modal h3 { margin: 0 0 16px; font-size: 17px; }
+.org-modal-fields { display: grid; gap: 12px; }
+.org-modal-fields label { display: grid; gap: 5px; font-size: 12px; color: #61798a; }
+.org-modal-fields input { height: 40px; padding: 0 12px; border: 1px solid #d8d9d4; border-radius: 8px; font: 14px 'Noto Sans SC', sans-serif; color: #1b2430; background: #fff; }
+.org-modal-fields input:focus { outline: 2px solid #d92d20; outline-offset: -1px; }
+.org-modal-actions { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
+.org-modal-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; border-radius: 8px; height: 40px; padding: 0 18px; color: #61798a; }
 
 /* 组织选择页：批量选择（参考 bmail 选择员工弹窗） */
 .org-picker-bulk { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px clamp(20px, 4vw, 40px) 0; }
