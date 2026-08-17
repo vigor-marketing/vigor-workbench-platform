@@ -6,6 +6,8 @@ type OrgPerson = { id: string; department: string; team: string; role: string; n
 type OrgTeamNode = { team: string; persons: OrgPerson[] }
 type OrgDeptNode = { department: string; teams: OrgTeamNode[] }
 
+type View = { level: 1 } | { level: 2; department: string } | { level: 3; department: string; team: string }
+
 type Editor =
   | { kind: 'department'; mode: 'add' }
   | { kind: 'department'; mode: 'edit'; oldName: string }
@@ -16,8 +18,7 @@ type Editor =
 
 export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean } }) {
   const [tree, setTree] = useState<OrgDeptNode[]>([])
-  const [openDepts, setOpenDepts] = useState<Set<string>>(new Set())
-  const [openTeams, setOpenTeams] = useState<Set<string>>(new Set())
+  const [view, setView] = useState<View>({ level: 1 })
   const [editor, setEditor] = useState<Editor | null>(null)
   const [form, setForm] = useState({ department: '', team: '', role: '成员', name: '', englishName: '' })
   const [message, setMessage] = useState('')
@@ -33,13 +34,13 @@ export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean
 
   const allPersons = useMemo(() => tree.flatMap(d => d.teams.flatMap(t => t.persons)), [tree])
   const total = allPersons.length
+  const curDeptName = view.level === 2 || view.level === 3 ? view.department : undefined
+  const currentDept = curDeptName ? tree.find(d => d.department === curDeptName) : undefined
+  const currentTeam = view.level === 3 ? currentDept?.teams.find(t => t.team === view.team) : undefined
 
   if (currentUser.isAdmin !== true) {
     return <section className="page"><div className="state-card"><Icon name="lock" size={28} /><h2>仅管理员可维护组织架构</h2></div></section>
   }
-
-  const toggleDept = (name: string) => setOpenDepts(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
-  const toggleTeam = (key: string) => setOpenTeams(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
 
   const openEditor = (ed: Editor) => {
     setEditor(ed)
@@ -77,94 +78,84 @@ export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean
     } catch (e) { setMessage(e instanceof Error ? e.message : '保存失败') }
   }
 
-  const removeDept = async (d: OrgDeptNode) => {
-    const count = d.teams.reduce((m, t) => m + t.persons.length, 0)
-    if (!window.confirm(`删除部门「${d.department}」${count ? `，其下 ${count} 人将一并删除` : ''}？此操作不可恢复。`)) return
+  const doDelete = async (url: string, label: string, extraConfirm = '') => {
+    const resetToRoot = view.level !== 1 && view.department === label
+    if (!window.confirm(`删除${extraConfirm}「${label}」？此操作不可恢复。`)) return
     try {
-      const r = await fetch(`/api/org/departments/${encodeURIComponent(d.department)}?force=true`, { method: 'DELETE', credentials: 'include' })
+      const r = await fetch(url, { method: 'DELETE', credentials: 'include' })
       if (!r.ok) throw new Error(((await r.json().catch(() => ({})))?.message) || '删除失败。')
-      setMessage(`已删除「${d.department}」。`); await load()
-    } catch (e) { setMessage(e instanceof Error ? e.message : '删除失败') }
-  }
-  const removeTeam = async (d: OrgDeptNode, team: string) => {
-    const t = d.teams.find(x => x.team === team); const count = t?.persons.length ?? 0
-    if (!window.confirm(`删除二级部门「${team}」${count ? `，其下 ${count} 人将一并删除` : ''}？此操作不可恢复。`)) return
-    try {
-      const r = await fetch(`/api/org/teams?department=${encodeURIComponent(d.department)}&team=${encodeURIComponent(team)}&force=true`, { method: 'DELETE', credentials: 'include' })
-      if (!r.ok) throw new Error(((await r.json().catch(() => ({})))?.message) || '删除失败。')
-      setMessage(`已删除「${team}」。`); await load()
-    } catch (e) { setMessage(e instanceof Error ? e.message : '删除失败') }
-  }
-  const removePerson = async (p: OrgPerson) => {
-    if (!window.confirm(`确定从组织架构删除「${p.name}」？`)) return
-    try {
-      const r = await fetch(`/api/org/persons/${p.id}`, { method: 'DELETE', credentials: 'include' })
-      if (!r.ok) throw new Error('删除失败。')
-      setMessage(`已删除「${p.name}」。`); await load()
+      setMessage(`已删除「${label}」。`); await load()
+      if (resetToRoot) setView({ level: 1 })
     } catch (e) { setMessage(e instanceof Error ? e.message : '删除失败') }
   }
 
   const editorTitle = editor ? editor.kind === 'department' ? (editor.mode === 'add' ? '新增部门' : '编辑部门') : editor.kind === 'team' ? (editor.mode === 'add' ? '新增二级部门' : '编辑二级部门') : (editor.mode === 'add' ? '新增人员' : '编辑人员') : ''
   const departments = tree.map(d => d.department)
+  const headerAction = view.level === 1
+    ? { label: '新增部门', ed: { kind: 'department' as const, mode: 'add' as const } }
+    : view.level === 2
+    ? { label: '新增二级部门', ed: { kind: 'team' as const, mode: 'add' as const, department: view.department } }
+    : { label: '新增人员', ed: { kind: 'person' as const, mode: 'add' as const, department: view.department, team: view.team } }
+
+  const crumbDept = view.level === 2 || view.level === 3 ? view.department : undefined
+  const crumbTeam = view.level === 3 ? view.team : undefined
 
   return <section className="page org-chart-page">
     <div className="page-heading">
-      <div><h1>组织架构</h1><p>共 {total} 人 · {tree.length} 个部门，点击展开查看与修改</p></div>
-      <button type="button" className="primary-button" onClick={() => openEditor({ kind: 'department', mode: 'add' })}>新增部门</button>
+      <div><h1>组织架构</h1><p>共 {total} 人 · {tree.length} 个部门，点卡片逐级打开</p></div>
+      <button type="button" className="primary-button" onClick={() => openEditor(headerAction.ed)}>{headerAction.label}</button>
     </div>
 
     {message && <p className="org-chart-message" role="status">{message}</p>}
 
-    <div className="org-tree">
-      {tree.map(d => {
-        const open = openDepts.has(d.department)
-        const count = d.teams.reduce((m, t) => m + t.persons.length, 0)
-        return <div className="org-node" key={d.department}>
-          <div className="org-node-head" onClick={() => toggleDept(d.department)}>
-            <span className={'org-twisty' + (open ? ' open' : '')}><Icon name="arrow" size={14} /></span>
-            <span className="org-node-name">{d.department}</span>
-            <span className="org-node-count">{count}</span>
-            <span className="org-node-actions" onClick={e => e.stopPropagation()}>
-              <button type="button" onClick={() => openEditor({ kind: 'team', mode: 'add', department: d.department })}>＋二级部门</button>
-              <button type="button" onClick={() => openEditor({ kind: 'department', mode: 'edit', oldName: d.department })}>编辑</button>
-              <button type="button" className="danger" onClick={() => void removeDept(d)}>删除</button>
-            </span>
-          </div>
-          {open && <div className="org-node-children">
-            {d.teams.map(t => {
-              const key = d.department + '|' + t.team
-              const tOpen = openTeams.has(key)
-              return <div className="org-node" key={key}>
-                <div className="org-node-head" onClick={() => toggleTeam(key)}>
-                  <span className={'org-twisty' + (tOpen ? ' open' : '')}><Icon name="arrow" size={13} /></span>
-                  <span className="org-node-name">{t.team}</span>
-                  <span className="org-node-count">{t.persons.length}</span>
-                  <span className="org-node-actions" onClick={e => e.stopPropagation()}>
-                    <button type="button" onClick={() => openEditor({ kind: 'person', mode: 'add', department: d.department, team: t.team })}>＋人员</button>
-                    <button type="button" onClick={() => openEditor({ kind: 'team', mode: 'edit', department: d.department, oldTeam: t.team })}>编辑</button>
-                    <button type="button" className="danger" onClick={() => void removeTeam(d, t.team)}>删除</button>
-                  </span>
-                </div>
-                {tOpen && <div className="org-node-children org-people">
-                  {t.persons.map(p => <div className="org-person" key={p.id}>
-                    <span className="org-dot" />
-                    <span className="org-person-name">{p.name}</span>
-                    <span className="org-person-meta">{p.englishName}{p.role ? ' · ' + p.role : ''}</span>
-                    <span className="org-person-actions">
-                      <button type="button" onClick={() => openEditor({ kind: 'person', mode: 'edit', id: p.id })}>编辑</button>
-                      <button type="button" className="danger" onClick={() => void removePerson(p)}>删除</button>
-                    </span>
-                  </div>)}
-                  {t.persons.length === 0 && <p className="org-empty">暂无人员，点「＋人员」添加。</p>}
-                </div>}
-              </div>
-            })}
-            {d.teams.length === 0 && <p className="org-empty">暂无二级部门，点「＋二级部门」创建。</p>}
-          </div>}
-        </div>
-      })}
-      {tree.length === 0 && <div className="org-empty" style={{ padding: 30, textAlign: 'center' }}>暂无部门，点右上角「新增部门」创建。</div>}
+    <div className="org-breadcrumb">
+      <button type="button" onClick={() => setView({ level: 1 })}>组织架构</button>
+      {crumbDept && <><Icon name="arrow" size={12} /><button type="button" onClick={() => setView({ level: 2, department: crumbDept })}>{crumbDept}</button></>}
+      {crumbTeam && <><Icon name="arrow" size={12} /><b>{crumbTeam}</b></>}
     </div>
+
+    {view.level === 1 && <div className="module-grid">
+      {tree.map(d => <div className="module-card" key={d.department}>
+        <div className="module-card-main" onClick={() => setView({ level: 2, department: d.department })}>
+          <span className="module-name">{d.department}</span>
+          <span className="module-count">{d.teams.reduce((m, t) => m + t.persons.length, 0)} 人 · {d.teams.length} 组</span>
+        </div>
+        <span className="module-actions">
+          <button type="button" onClick={() => openEditor({ kind: 'team', mode: 'add', department: d.department })}>＋组</button>
+          <button type="button" onClick={() => openEditor({ kind: 'department', mode: 'edit', oldName: d.department })}>编辑</button>
+          <button type="button" className="danger" onClick={() => void doDelete(`/api/org/departments/${encodeURIComponent(d.department)}?force=true`, d.department, `部门，其下 ${d.teams.reduce((m, t) => m + t.persons.length, 0)} 人将一并`)}>删除</button>
+        </span>
+      </div>)}
+      {tree.length === 0 && <div className="org-empty">暂无部门，点右上角「新增部门」创建。</div>}
+    </div>}
+
+    {view.level === 2 && currentDept && <div className="module-grid">
+      {currentDept.teams.map(t => <div className="module-card sub" key={t.team}>
+        <div className="module-card-main" onClick={() => setView({ level: 3, department: currentDept.department, team: t.team })}>
+          <span className="module-name">{t.team}</span>
+          <span className="module-count">{t.persons.length} 人</span>
+        </div>
+        <span className="module-actions">
+          <button type="button" onClick={() => openEditor({ kind: 'person', mode: 'add', department: currentDept.department, team: t.team })}>＋人员</button>
+          <button type="button" onClick={() => openEditor({ kind: 'team', mode: 'edit', department: currentDept.department, oldTeam: t.team })}>编辑</button>
+          <button type="button" className="danger" onClick={() => void doDelete(`/api/org/teams?department=${encodeURIComponent(currentDept.department)}&team=${encodeURIComponent(t.team)}&force=true`, t.team, `二级部门，其下 ${t.persons.length} 人将一并`)}>删除</button>
+        </span>
+      </div>)}
+      {currentDept.teams.length === 0 && <div className="org-empty">暂无二级部门，点右上角「新增二级部门」创建。</div>}
+    </div>}
+
+    {view.level === 3 && currentDept && currentTeam && <div className="org-people-card">
+      {currentTeam.persons.map(p => <div className="org-person" key={p.id}>
+        <span className="org-dot" />
+        <span className="org-person-name">{p.name}</span>
+        <span className="org-person-meta">{p.englishName}{p.role ? ' · ' + p.role : ''}</span>
+        <span className="org-person-actions">
+          <button type="button" onClick={() => openEditor({ kind: 'person', mode: 'edit', id: p.id })}>编辑</button>
+          <button type="button" className="danger" onClick={() => void doDelete(`/api/org/persons/${p.id}`, p.name)}>删除</button>
+        </span>
+      </div>)}
+      {currentTeam.persons.length === 0 && <div className="org-empty">暂无人员，点右上角「新增人员」添加。</div>}
+    </div>}
 
     {editor && <div className="org-modal-backdrop" onClick={() => setEditor(null)}>
       <form className="org-modal" onClick={e => e.stopPropagation()} onSubmit={submit}>
