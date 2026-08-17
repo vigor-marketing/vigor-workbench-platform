@@ -10,13 +10,14 @@ export function OrgPickerPage() {
   const [params] = useSearchParams()
   const mode: 'single' | 'multi' = params.get('mode') === 'multi' ? 'multi' : 'single'
   const title = params.get('title') || '选择人员'
+  const token = params.get('token') || ''
   const [tree, setTree] = useState<OrgDept[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/org/tree', { credentials: 'include' })
+    fetch('/api/org/tree', { credentials: 'include', headers: token ? { 'X-Picker-Token': token } : {} })
       .then(resp => { if (!resp.ok) throw new Error('未登录或无权访问组织数据'); return resp.json() as Promise<OrgDept[]> })
       .then(setTree)
       .catch(err => setError(err instanceof Error ? err.message : '加载失败'))

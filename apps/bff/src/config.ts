@@ -16,4 +16,5 @@ export const config = {
   appPermissionsFile: process.env.APP_PERMISSIONS_FILE ?? '/var/lib/vigor-workbench/app-permissions.json',
   authSecret: process.env.WORKBENCH_AUTH_SECRET ?? process.env.WORKBENCH_BRIDGE_SECRET ?? '',
   bootstrapAdminPassword: process.env.BOOTSTRAP_ADMIN_PASSWORD,
+  orgPickerToken: process.env.ORG_PICKER_TOKEN ?? '',
 }

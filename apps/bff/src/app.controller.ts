@@ -1,4 +1,6 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Headers, HttpException, Param, Patch, Post, Put, Res } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Headers, HttpException, Param, Patch, Post, Put, Res, UnauthorizedException } from '@nestjs/common'
+import crypto from 'node:crypto'
+import { config } from './config.js'
 import { AppsService } from './apps.service.js'
 import { IdentityService } from './identity.service.js'
 import { TodosService } from './todos.service.js'
@@ -142,6 +144,21 @@ export class AppController {
   @Post('sales/:entity/:id/team-transfer')
   async transferSalesTeam(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('entity') entity: string, @Param('id') id: string, @Body() body?: { teamId?: string; teamName?: string; note?: string }) { return this.sales.transferTeam(await this.auth.actorFromRequest(cookie, authorization), entity, id, body ?? {}) }
 
+  // 组织选择器令牌：外部程序可凭 X-Picker-Token（或 query token）访问 org 数据，无需工作台会话。
+  private async requireOrgAccess(cookie: string | undefined, authorization: string | undefined, pickerToken?: string) {
+    try {
+      await this.auth.actorFromRequest(cookie, authorization)
+      return
+    } catch {
+      if (config.orgPickerToken && pickerToken) {
+        const a = Buffer.from(config.orgPickerToken)
+        const b = Buffer.from(pickerToken)
+        if (a.length === b.length && crypto.timingSafeEqual(a, b)) return
+      }
+      throw new UnauthorizedException('请先登录，或提供有效的选择器令牌。')
+    }
+  }
+
   // 内测隔离入口：先走真实会话；无会话时仅在 DEMO_MODE=true 下回退到 X-Demo-Role。
   // 生产（DEMO_MODE=false）时 actorFromDemoRole 会抛 401，隔离入口自动失效。
   private async actorOrDemo(cookie: string | undefined, authorization: string | undefined, demoRole: string | undefined) {
@@ -174,11 +191,11 @@ export class AppController {
   @Post('apps/:appId/ai/chat/completions')
   async aiChatCompletion(@Param('appId') appId: string, @Headers('x-workbench-app-id') caller: string | undefined, @Headers('x-workbench-app-secret') headerSecret: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: unknown) { const appSecret = headerSecret || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined); if ((caller && caller !== appId) || !appSecret || !this.identity.verifyAppProxySecret(appId, appSecret)) throw new ForbiddenException('应用身份验证失败。'); const result = await this.integrations.proxyChatCompletion(appId, body).catch(error => { throw new BadRequestException(error.message) }); if (result.status < 200 || result.status >= 300) throw new HttpException(result.body as object, result.status); return result.body }
   @Get('org/tree')
-  async orgTree(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.auth.actorFromRequest(cookie, authorization); return this.org.tree() }
+  async orgTree(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.tree() }
   @Get('org/persons')
-  async orgPersons(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.auth.actorFromRequest(cookie, authorization); return this.org.list() }
+  async orgPersons(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.list() }
   @Get('org/departments')
-  async orgDepartments(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.auth.actorFromRequest(cookie, authorization); return this.org.departments() }
+  async orgDepartments(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.departments() }
 
   @Post('events')
   async ingestEvent(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: TodoEventInput) { if (!body?.eventId?.trim() || !body?.type || typeof body.source !== 'string') throw new BadRequestException('事件需要 eventId、type 和 source。'); if (!['todo.created', 'todo.completed', 'todo.overdue'].includes(body.type)) throw new BadRequestException('不支持的事件类型。'); return this.todos.ingest(await this.auth.actorFromRequest(cookie, authorization), body) }

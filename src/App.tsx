@@ -100,6 +100,7 @@ function Layout() {
   }, [sidebarOpen])
 
   if (!authReady) return <main className="login-page"><p>正在验证登录状态…</p></main>
+  if (location.pathname === '/org-picker' && new URLSearchParams(location.search).get('token')) return <OrgPickerPage />
   if (!session) return <LoginPage onLogin={login} />
   if (location.pathname === '/org-picker') return <OrgPickerPage />
 
