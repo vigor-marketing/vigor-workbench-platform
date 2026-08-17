@@ -6,7 +6,7 @@ body { min-width: 320px; margin: 0; }
 a { color: inherit; text-decoration: none; }
 button, select { font: inherit; }
 button { cursor: pointer; }
-.shell { min-height: 100vh; display: grid; grid-template-columns: 246px minmax(0, 1fr); transition: grid-template-columns .22s ease; }
+.shell { min-height: 100vh; display: grid; grid-template-columns: 246px minmax(0, 1fr); transition: grid-template-columns .28s cubic-bezier(.4, 0, .2, 1); }
 .sidebar { min-height: 100vh; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; background: #15202c; color: #d8e0e6; padding: 24px 14px 18px; }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 27px; color: #f7fafb; font-weight: 700; line-height: 1.05; letter-spacing: .03em; }
 .brand small { font: 500 8px/1 'DM Mono', monospace; letter-spacing: .18em; color: #8ea1af; }
@@ -25,6 +25,9 @@ button { cursor: pointer; }
 .app-nav.active i { border-color: #eebd59; color: #eebd59; }
 .sidebar-bottom { margin-top: auto; border-top: 1px solid #2b3d4b; padding-top: 13px; }
 .sidebar-bottom p { margin: 14px 10px 0; color: #708797; font: 10px/1.7 'DM Mono', monospace; }
+
+.nav-label, .app-label, .brand > span:not(.brand-mark) { display: inline-block; white-space: nowrap; overflow: hidden; opacity: 1; max-width: 130px; transition: opacity .16s ease, max-width .26s cubic-bezier(.4, 0, .2, 1); }
+.nav-item, .app-nav { transition: background .16s ease, color .16s ease, gap .26s cubic-bezier(.4, 0, .2, 1); }
 .main-content { min-width: 0; }
 .topbar { height: 67px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 clamp(22px, 4vw, 62px); border-bottom: 1px solid #d8d9d4; background: rgba(248,248,245,.92); }
 .crumb { display: flex; align-items: center; gap: 9px; color: #76818a; font: 11px 'DM Mono', monospace; letter-spacing: .04em; }
@@ -310,16 +313,44 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 
 @media (min-width: 961px) {
   .shell.sidebar-collapsed { grid-template-columns: 72px minmax(0, 1fr); }
-  .sidebar-collapsed .sidebar { padding: 24px 12px 18px; }
+  .sidebar-collapsed .sidebar { padding: 24px 12px 18px; overflow: visible; }
   .sidebar-collapsed .brand { justify-content: center; padding-left: 0; padding-right: 0; }
-  .sidebar-collapsed .brand > span:not(.brand-mark) { display: none; }
+  .sidebar-collapsed .brand > span:not(.brand-mark),
+  .sidebar-collapsed .nav-label,
+  .sidebar-collapsed .app-label { opacity: 0; max-width: 0; }
   .sidebar-collapsed .nav-item,
-  .sidebar-collapsed .app-nav { font-size: 0; justify-content: center; padding: 0; gap: 0; margin-left: 0; }
+  .sidebar-collapsed .app-nav { gap: 0; justify-content: center; padding: 0; margin-left: 0; }
   .sidebar-collapsed .nav-count,
   .sidebar-collapsed .nav-caption,
   .sidebar-collapsed .department-title,
   .sidebar-collapsed .admin-nav-group,
   .sidebar-collapsed .sidebar-bottom p { display: none; }
+
+  /* 折叠态悬停 tooltip */
+  .sidebar-collapsed .nav-item,
+  .sidebar-collapsed .app-nav { position: relative; }
+  .sidebar-collapsed .nav-item::after,
+  .sidebar-collapsed .app-nav::after {
+    content: attr(data-label);
+    position: absolute;
+    left: calc(100% + 14px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1a242f;
+    color: #f7fafb;
+    font-size: 12px;
+    line-height: 1.2;
+    padding: 7px 11px;
+    border-radius: 6px;
+    white-space: nowrap;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .32);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s ease;
+    z-index: 120;
+  }
+  .sidebar-collapsed .nav-item:hover::after,
+  .sidebar-collapsed .app-nav:hover::after { opacity: 1; }
 }
 
 @media (min-width: 1800px) {
@@ -388,7 +419,7 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar, .sidebar-backdrop, .navigation-toggle span { transition: none; }
+  .sidebar, .sidebar-backdrop, .navigation-toggle span, .shell, .nav-label, .app-label, .nav-item, .app-nav { transition: none; }
 }
 
 /* Shared page content contract: operational pages reflow without hiding actions or widening the viewport. */

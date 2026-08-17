@@ -95,17 +95,17 @@ function Layout() {
     <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onClick={event => { if ((event.target as HTMLElement).closest('a')) setSidebarOpen(false) }}>
       <Link className="brand" to="/" aria-label="返回工作台首页"><span className="brand-mark">V</span><span>Vigor<br /><small>WORKBENCH</small></span></Link>
       <nav className="primary-nav" aria-label="主导航">
-        <NavLink end to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon name="grid" />工作总览</NavLink>
-        <NavLink to="/todos" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon name="check" />我的待办<span className="nav-count">{todos.filter(item => !item.completed).length}</span></NavLink>
+        <NavLink end to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-label="工作总览"><Icon name="grid" /><span className="nav-label">工作总览</span></NavLink>
+        <NavLink to="/todos" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-label="我的待办"><Icon name="check" /><span className="nav-label">我的待办</span><span className="nav-count">{todos.filter(item => !item.completed).length}</span></NavLink>
       </nav>
       <div className="nav-caption">部门应用</div>
       <div className="department-nav">
         {(Object.keys(departments) as Department[]).map(department => <div className="department-item" key={department}>
           <div className="department-title"><span>{departments[department].order}</span>{departments[department].label}</div>
-          {apps.filter(app => app.department === department && isAllowed(permissions, role, app)).map(app => <NavLink key={app.id} to={`/workspace/apps/${app.id}`} className={({ isActive }) => `app-nav ${isActive ? 'active' : ''}`}><i>{app.shortName.slice(0, 1)}</i>{app.name}</NavLink>)}
+          {apps.filter(app => app.department === department && isAllowed(permissions, role, app)).map(app => <NavLink key={app.id} to={`/workspace/apps/${app.id}`} className={({ isActive }) => `app-nav ${isActive ? 'active' : ''}`} data-label={app.name}><i>{app.shortName.slice(0, 1)}</i><span className="app-label">{app.name}</span></NavLink>)}
         </div>)}
       </div>
-      <div className="sidebar-bottom"><Link to="/account" className="nav-item"><Icon name="settings" />个人账号</Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item"><Icon name="shield" />账号与权限</Link><Link to="/admin/app-permissions" className="nav-item"><Icon name="shield" />应用岗位权限</Link><div className="admin-nav-group"><span className="admin-nav-label"><Icon name="settings" />服务与授权</span><NavLink to="/admin/api-services" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>API 服务库</NavLink><NavLink to="/admin/api-grants" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>应用 API 授权</NavLink></div></>}<Link to="/settings" className="nav-item"><Icon name="settings" />接入设置</Link><p>平台版本 0.1<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
+      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="settings" /><span className="nav-label">个人账号</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="shield" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="应用岗位权限"><Icon name="shield" /><span className="nav-label">应用岗位权限</span></Link><div className="admin-nav-group"><span className="admin-nav-label"><Icon name="settings" />服务与授权</span><NavLink to="/admin/api-services" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>API 服务库</NavLink><NavLink to="/admin/api-grants" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>应用 API 授权</NavLink></div></>}<Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="settings" /><span className="nav-label">接入设置</span></Link><p>平台版本 0.1<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
     </aside>
     <button className="sidebar-backdrop" type="button" aria-label="关闭导航" tabIndex={sidebarOpen ? 0 : -1} onClick={() => setSidebarOpen(false)} />
     <main className="main-content">
