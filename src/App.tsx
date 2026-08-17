@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { Icon } from './components/Icon'
 import { SalesManagementPage } from './components/SalesManagementPage'
+import { OrgPickerPage } from './components/OrgPickerPage'
 import { appUrl, apps, departments, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
 import { getUsers, isAllowed, saveUsers, type DemoUser, type PermissionMap } from './lib/demo-auth'
 import { changeServerPassword, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout } from './lib/server-auth'
@@ -100,6 +101,7 @@ function Layout() {
 
   if (!authReady) return <main className="login-page"><p>正在验证登录状态…</p></main>
   if (!session) return <LoginPage onLogin={login} />
+  if (location.pathname === '/org-picker') return <OrgPickerPage />
 
   return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onClick={event => { const link = (event.target as HTMLElement).closest('a'); if (!link) return; setSidebarOpen(false); if (window.matchMedia('(min-width: 961px)').matches && sidebarCollapsed) { setSidebarCollapsed(false); autoExpandedRef.current = true } }}>

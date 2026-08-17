@@ -493,3 +493,32 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
   .api-app-item, .grant-row { min-height: 44px; }
   .role-group input, .grant-row input, .account-option-row input { width: 18px; height: 18px; }
 }
+
+/* 组织人员选择页（独立新窗口） */
+.org-picker { min-height: 100dvh; display: flex; flex-direction: column; background: #f3f3ef; color: #1b2430; }
+.org-picker-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px clamp(20px, 4vw, 40px) 16px; border-bottom: 1px solid #d8d9d4; background: #fafaf8; }
+.org-picker-head h1 { margin: 6px 0 2px; font-size: 22px; }
+.org-picker-search { display: flex; align-items: center; gap: 9px; margin: 16px clamp(20px, 4vw, 40px) 0; padding: 0 13px; height: 42px; background: #fff; border: 1px solid #d8d9d4; border-radius: 8px; color: #76818a; }
+.org-picker-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 14px 'Noto Sans SC', sans-serif; color: #1b2430; }
+.org-picker-list { flex: 1; padding: 8px clamp(20px, 4vw, 40px) 24px; overflow-y: auto; }
+.org-dept { margin-top: 18px; }
+.org-dept-title { display: flex; align-items: center; gap: 8px; padding: 0 4px 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #61798a; }
+.org-dept-title span { border-radius: 10px; padding: 0 7px; background: #e6e8e4; color: #61798a; font: 11px 'DM Mono', monospace; }
+.org-team-title { padding: 4px; font-size: 12px; color: #8a97a1; }
+.org-person { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 11px; border: 1px solid transparent; border-radius: 8px; background: transparent; text-align: left; transition: background .12s ease, border-color .12s ease; }
+.org-person:hover { background: #fff; }
+.org-person.selected { background: #fff; border-color: #d92d20; }
+.org-check { width: 19px; height: 19px; flex: 0 0 19px; display: grid; place-items: center; border: 1.5px solid #b9c2c8; border-radius: 5px; color: #fff; }
+.org-check.radio { border-radius: 50%; }
+.org-person.selected .org-check { background: #d92d20; border-color: #d92d20; }
+.org-avatar { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 50%; background: #15202c; color: #fff; font-size: 13px; font-weight: 600; }
+.org-person-main { display: grid; min-width: 0; }
+.org-person-main b { font-size: 14px; }
+.org-person-main small { color: #8a97a1; font: 11px 'DM Mono', monospace; }
+.org-person-meta { margin-left: auto; padding-left: 12px; color: #76818a; font-size: 12px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.org-picker-foot { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px clamp(20px, 4vw, 40px); border-top: 1px solid #d8d9d4; background: #fafaf8; }
+.org-picker-foot span { color: #61798a; font-size: 13px; }
+.org-picker-empty { padding: 60px 0; text-align: center; color: #8a97a1; }
+.org-picker-empty svg { color: #b9c2c8; }
+.org-picker-error { margin: 14px clamp(20px, 4vw, 40px) 0; padding: 11px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; white-space: pre-wrap; }
+.org-picker .primary-button:disabled { opacity: .4; cursor: not-allowed; }

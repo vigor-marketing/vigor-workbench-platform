@@ -5,11 +5,12 @@ import { TodosService } from './todos.service.js'
 import { IntegrationsService, type ServiceInput } from './integrations.service.js'
 import { AuthService } from './auth.service.js'
 import { SalesService } from './sales.service.js'
+import { OrgService } from './org.service.js'
 import type { TodoEventInput } from './types.js'
 
 @Controller()
 export class AppController {
-  constructor(private readonly identity: IdentityService, private readonly apps: AppsService, private readonly todos: TodosService, private readonly integrations: IntegrationsService, private readonly auth: AuthService, private readonly sales: SalesService) {}
+  constructor(private readonly identity: IdentityService, private readonly apps: AppsService, private readonly todos: TodosService, private readonly integrations: IntegrationsService, private readonly auth: AuthService, private readonly sales: SalesService, private readonly org: OrgService) {}
 
   @Get('health') health() { return { status: 'ok', todoStorage: this.todos.storageMode() } }
 
@@ -172,6 +173,13 @@ export class AppController {
   async appApiServices(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('appId') appId: string) { const actor = await this.auth.actorFromRequest(cookie, authorization); if (!this.apps.list(actor.role).some(app => app.id === appId)) throw new ForbiddenException('当前岗位无权访问该应用。'); return this.integrations.authorizedForApp(appId) }
   @Post('apps/:appId/ai/chat/completions')
   async aiChatCompletion(@Param('appId') appId: string, @Headers('x-workbench-app-id') caller: string | undefined, @Headers('x-workbench-app-secret') headerSecret: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: unknown) { const appSecret = headerSecret || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined); if ((caller && caller !== appId) || !appSecret || !this.identity.verifyAppProxySecret(appId, appSecret)) throw new ForbiddenException('应用身份验证失败。'); const result = await this.integrations.proxyChatCompletion(appId, body).catch(error => { throw new BadRequestException(error.message) }); if (result.status < 200 || result.status >= 300) throw new HttpException(result.body as object, result.status); return result.body }
+  @Get('org/tree')
+  async orgTree(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.auth.actorFromRequest(cookie, authorization); return this.org.tree() }
+  @Get('org/persons')
+  async orgPersons(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.auth.actorFromRequest(cookie, authorization); return this.org.list() }
+  @Get('org/departments')
+  async orgDepartments(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.auth.actorFromRequest(cookie, authorization); return this.org.departments() }
+
   @Post('events')
   async ingestEvent(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: TodoEventInput) { if (!body?.eventId?.trim() || !body?.type || typeof body.source !== 'string') throw new BadRequestException('事件需要 eventId、type 和 source。'); if (!['todo.created', 'todo.completed', 'todo.overdue'].includes(body.type)) throw new BadRequestException('不支持的事件类型。'); return this.todos.ingest(await this.auth.actorFromRequest(cookie, authorization), body) }
 }

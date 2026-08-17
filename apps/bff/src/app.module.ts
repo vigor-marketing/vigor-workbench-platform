@@ -6,6 +6,7 @@ import { TodosService } from './todos.service.js'
 import { IntegrationsService } from './integrations.service.js'
 import { AuthService } from './auth.service.js'
 import { SalesService } from './sales.service.js'
+import { OrgService } from './org.service.js'
 
-@Module({ controllers: [AppController], providers: [AppsService, IdentityService, TodosService, IntegrationsService, AuthService, SalesService] })
+@Module({ controllers: [AppController], providers: [AppsService, IdentityService, TodosService, IntegrationsService, AuthService, SalesService, OrgService] })
 export class AppModule {}
