@@ -23,7 +23,7 @@ function Layout() {
   const [todoSource, setTodoSource] = useState<'api' | 'demo'>('demo')
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => { try { return localStorage.getItem('vigor.sidebar.collapsed') === '1' } catch { return false } })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => { try { const v = localStorage.getItem('vigor.sidebar.collapsed'); return v === null ? true : v === '1' } catch { return true } })
   const toggleNav = () => {
     if (window.matchMedia('(max-width: 960px)').matches) {
       setSidebarOpen(open => !open)
