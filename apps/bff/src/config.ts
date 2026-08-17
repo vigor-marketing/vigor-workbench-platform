@@ -17,4 +17,5 @@ export const config = {
   authSecret: process.env.WORKBENCH_AUTH_SECRET ?? process.env.WORKBENCH_BRIDGE_SECRET ?? '',
   bootstrapAdminPassword: process.env.BOOTSTRAP_ADMIN_PASSWORD,
   orgPickerToken: process.env.ORG_PICKER_TOKEN ?? '',
+  orgFile: process.env.ORG_FILE ?? '/var/lib/vigor-workbench/org.json',
 }

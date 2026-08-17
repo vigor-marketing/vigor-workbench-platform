@@ -522,3 +522,27 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-picker-empty svg { color: #b9c2c8; }
 .org-picker-error { margin: 14px clamp(20px, 4vw, 40px) 0; padding: 11px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; white-space: pre-wrap; }
 .org-picker .primary-button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* 组织架构管理页 */
+.org-chart-message { margin: 0 0 18px; padding: 11px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; }
+.org-chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.org-chart-card { border: 1px solid #e2e4df; border-radius: 12px; background: #fff; overflow: hidden; }
+.org-chart-card-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid #eceee9; background: #fafaf8; }
+.org-chart-card-head h2 { margin: 0; font-size: 15px; }
+.org-chart-card-head span { color: #8a97a1; font: 11px 'DM Mono', monospace; }
+.org-chart-team { padding: 10px 12px 4px; }
+.org-chart-team h3 { margin: 0 0 6px; font-size: 12px; color: #61798a; }
+.org-chart-person { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
+.org-chart-person:hover { background: #f5f5f2; }
+.org-chart-person-actions { margin-left: auto; display: flex; gap: 4px; }
+.org-chart-person-actions button { border: 0; background: transparent; color: #61798a; font-size: 12px; padding: 3px 7px; border-radius: 5px; }
+.org-chart-person-actions button:hover { background: #e9ece8; color: #1b2430; }
+.org-chart-person-actions button.danger:hover { background: #fff0ee; color: #a61b14; }
+.org-chart-editor { margin-top: 22px; border: 1px solid #e2e4df; border-radius: 12px; background: #fff; padding: 18px 20px; }
+.org-chart-editor h3 { margin: 0 0 14px; font-size: 16px; }
+.org-chart-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.org-chart-fields label { display: grid; gap: 5px; font-size: 12px; color: #61798a; }
+.org-chart-fields input { height: 38px; padding: 0 11px; border: 1px solid #d8d9d4; border-radius: 7px; font: 14px 'Noto Sans SC', sans-serif; color: #1b2430; background: #fff; }
+.org-chart-fields input:focus { outline: 2px solid #d92d20; outline-offset: -1px; }
+.org-chart-editor-actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
+.org-chart-editor-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; border-radius: 7px; height: 38px; padding: 0 16px; color: #61798a; }

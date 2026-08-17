@@ -7,7 +7,7 @@ import { TodosService } from './todos.service.js'
 import { IntegrationsService, type ServiceInput } from './integrations.service.js'
 import { AuthService } from './auth.service.js'
 import { SalesService } from './sales.service.js'
-import { OrgService } from './org.service.js'
+import { OrgService, type OrgPersonInput } from './org.service.js'
 import type { TodoEventInput } from './types.js'
 
 @Controller()
@@ -196,6 +196,13 @@ export class AppController {
   async orgPersons(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.list() }
   @Get('org/departments')
   async orgDepartments(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.departments() }
+
+  @Post('org/persons')
+  async createOrgPerson(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: OrgPersonInput) { await this.admin(cookie, authorization); return this.org.addPerson(body ?? {}).catch(error => { throw new BadRequestException(error.message) }) }
+  @Put('org/persons/:id')
+  async updateOrgPerson(@Param('id') id: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: OrgPersonInput) { await this.admin(cookie, authorization); return this.org.updatePerson(id, body ?? {}).catch(error => { throw new BadRequestException(error.message) }) }
+  @Delete('org/persons/:id')
+  async deleteOrgPerson(@Param('id') id: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.org.deletePerson(id).catch(error => { throw new BadRequestException(error.message) }) }
 
   @Post('events')
   async ingestEvent(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: TodoEventInput) { if (!body?.eventId?.trim() || !body?.type || typeof body.source !== 'string') throw new BadRequestException('事件需要 eventId、type 和 source。'); if (!['todo.created', 'todo.completed', 'todo.overdue'].includes(body.type)) throw new BadRequestException('不支持的事件类型。'); return this.todos.ingest(await this.auth.actorFromRequest(cookie, authorization), body) }

@@ -4,6 +4,7 @@ import { Link, NavLink, Route, Routes, useLocation, useParams } from 'react-rout
 import { Icon } from './components/Icon'
 import { SalesManagementPage } from './components/SalesManagementPage'
 import { OrgPickerPage } from './components/OrgPickerPage'
+import { OrgChartPage } from './components/OrgChartPage'
 import { appUrl, apps, departments, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
 import { getUsers, isAllowed, saveUsers, type DemoUser, type PermissionMap } from './lib/demo-auth'
 import { changeServerPassword, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout } from './lib/server-auth'
@@ -118,7 +119,7 @@ function Layout() {
           {apps.filter(app => app.department === department && isAllowed(permissions, role, app)).map(app => <NavLink key={app.id} to={`/workspace/apps/${app.id}`} className={({ isActive }) => `app-nav ${isActive ? 'active' : ''}`} data-label={app.name}><i>{app.shortName.slice(0, 1)}</i><span className="app-label">{app.name}</span></NavLink>)}
         </div>)}
       </div>
-      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="settings" /><span className="nav-label">个人账号</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="shield" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="应用岗位权限"><Icon name="shield" /><span className="nav-label">应用岗位权限</span></Link><div className="admin-nav-group"><span className="admin-nav-label"><Icon name="settings" />服务与授权</span><NavLink to="/admin/api-services" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>API 服务库</NavLink><NavLink to="/admin/api-grants" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>应用 API 授权</NavLink></div></>}<Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="settings" /><span className="nav-label">接入设置</span></Link><p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
+      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="settings" /><span className="nav-label">个人账号</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="shield" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="应用岗位权限"><Icon name="shield" /><span className="nav-label">应用岗位权限</span></Link><Link to="/admin/org-chart" className="nav-item" data-label="组织架构"><Icon name="grid" /><span className="nav-label">组织架构</span></Link><div className="admin-nav-group"><span className="admin-nav-label"><Icon name="settings" />服务与授权</span><NavLink to="/admin/api-services" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>API 服务库</NavLink><NavLink to="/admin/api-grants" className={({isActive}) => 'admin-nav-child ' + (isActive ? 'active' : '')}>应用 API 授权</NavLink></div></>}<Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="settings" /><span className="nav-label">接入设置</span></Link><p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
     </aside>
     <button className="sidebar-backdrop" type="button" aria-label="关闭导航" tabIndex={sidebarOpen ? 0 : -1} onClick={() => setSidebarOpen(false)} />
     <main className="main-content">
@@ -145,6 +146,7 @@ function Layout() {
         <Route path="/account" element={<PersonalAccountPage currentUser={session} />} />
         <Route path="/admin/permissions" element={<PermissionAdminPage currentUser={session} />} />
         <Route path="/admin/app-permissions" element={<AppPermissionAdmin currentUser={session} />} />
+        <Route path="/admin/org-chart" element={<OrgChartPage currentUser={session} />} />
         <Route path="/admin/api-integrations" element={<ApiIntegrationPage currentUser={session} mode="services" />} />
         <Route path="/admin/api-services" element={<ApiIntegrationPage currentUser={session} mode="services" />} />
         <Route path="/admin/api-grants" element={<ApiIntegrationPage currentUser={session} mode="grants" />} />

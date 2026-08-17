@@ -1,18 +1,15 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, OnModuleInit } from '@nestjs/common'
+import crypto from 'node:crypto'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
+import { config } from './config.js'
 
-export type OrgPerson = {
-  id: string
-  department: string
-  team: string
-  role: string
-  name: string
-  englishName: string
-}
-
+export type OrgPerson = { id: string; department: string; team: string; role: string; name: string; englishName: string }
 export type OrgTeamNode = { team: string; persons: OrgPerson[] }
 export type OrgDepartmentNode = { department: string; teams: OrgTeamNode[] }
+export type OrgPersonInput = { department?: string; team?: string; role?: string; name?: string; englishName?: string }
 
-const persons: OrgPerson[] = [
+const seedPersons: OrgPerson[] = [
   { id: 'judy', department: '船务部', team: '船务部', role: '部门负责人/管理岗', name: '吴琼', englishName: 'Judy' },
   { id: 'yvonne', department: '船务部', team: '船务部', role: '成员', name: '袁晔', englishName: 'Yvonne' },
   { id: 'yolo', department: '船务部', team: '船务部', role: '成员', name: '李垚', englishName: 'Yolo' },
@@ -65,13 +62,29 @@ const persons: OrgPerson[] = [
 ]
 
 @Injectable()
-export class OrgService {
-  list(): OrgPerson[] { return persons }
+export class OrgService implements OnModuleInit {
+  private persons: OrgPerson[] = []
+
+  async onModuleInit() {
+    try {
+      const stored = JSON.parse(await readFile(config.orgFile, 'utf8'))
+      if (Array.isArray(stored) && stored.length) { this.persons = stored; return }
+    } catch { /* 首次运行或文件损坏时用种子数据 */ }
+    this.persons = seedPersons
+    await this.persist()
+  }
+
+  private async persist() {
+    await mkdir(dirname(config.orgFile), { recursive: true })
+    await writeFile(config.orgFile, JSON.stringify(this.persons, null, 2), { mode: 0o600 })
+  }
+
+  list(): OrgPerson[] { return this.persons }
 
   tree(): OrgDepartmentNode[] {
     const order: string[] = []
     const map = new Map<string, { department: string; teamOrder: string[]; teams: Map<string, OrgPerson[]> }>()
-    for (const p of persons) {
+    for (const p of this.persons) {
       let d = map.get(p.department)
       if (!d) { d = { department: p.department, teamOrder: [], teams: new Map() }; map.set(p.department, d); order.push(p.department) }
       let t = d.teams.get(p.team)
@@ -84,5 +97,43 @@ export class OrgService {
     })
   }
 
-  departments(): string[] { return [...new Set(persons.map(p => p.department))] }
+  departments(): string[] { return [...new Set(this.persons.map(p => p.department))] }
+
+  private makeId(englishName: string): string {
+    const base = (englishName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || crypto.randomUUID().slice(0, 8)
+    let id = base, n = 2
+    while (this.persons.some(p => p.id === id)) id = `${base}-${n++}`
+    return id
+  }
+
+  async addPerson(input: OrgPersonInput): Promise<OrgPerson> {
+    const { department, team, role, name, englishName } = input
+    if (!department?.trim() || !team?.trim() || !role?.trim() || !name?.trim() || !englishName?.trim()) throw new Error('部门、团队、角色、姓名、英文名均必填。')
+    const person: OrgPerson = { id: this.makeId(englishName), department: department.trim(), team: team.trim(), role: role.trim(), name: name.trim(), englishName: englishName.trim() }
+    this.persons.push(person)
+    await this.persist()
+    return person
+  }
+
+  async updatePerson(id: string, input: OrgPersonInput): Promise<OrgPerson> {
+    const idx = this.persons.findIndex(p => p.id === id)
+    if (idx < 0) throw new Error('人员不存在。')
+    const next: OrgPerson = { ...this.persons[idx] }
+    for (const key of ['department', 'team', 'role', 'name', 'englishName'] as const) {
+      const v = input[key]?.trim()
+      if (v) next[key] = v
+    }
+    if (!next.name || !next.englishName) throw new Error('姓名与英文名不能为空。')
+    this.persons[idx] = next
+    await this.persist()
+    return next
+  }
+
+  async deletePerson(id: string): Promise<{ ok: true }> {
+    const before = this.persons.length
+    this.persons = this.persons.filter(p => p.id !== id)
+    if (this.persons.length === before) throw new Error('人员不存在。')
+    await this.persist()
+    return { ok: true }
+  }
 }
