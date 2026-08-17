@@ -34,7 +34,7 @@ export class IdentityService {
     }
 
     const role = value && value in roles ? value as Role : 'salesperson'
-    return { id: 'employee-chen', role, ...roles[role] }
+    return { id: 'employee-chen', role, ...roles[role], isAdmin: role === 'general_manager' }
   }
   verifyAppProxySecret(appId:string, supplied:string) {
     if (!config.bridgeSecret || config.bridgeSecret.length < 32) return false

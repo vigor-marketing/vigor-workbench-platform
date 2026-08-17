@@ -16,6 +16,7 @@ export type Actor = {
   displayName: string
   role: Role
   organizationScope: string
+  isAdmin?: boolean
   teamId?: string
   teamName?: string
 }

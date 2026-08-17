@@ -141,17 +141,27 @@ export class AppController {
   @Post('sales/:entity/:id/team-transfer')
   async transferSalesTeam(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('entity') entity: string, @Param('id') id: string, @Body() body?: { teamId?: string; teamName?: string; note?: string }) { return this.sales.transferTeam(await this.auth.actorFromRequest(cookie, authorization), entity, id, body ?? {}) }
 
+  // 内测隔离入口：先走真实会话；无会话时仅在 DEMO_MODE=true 下回退到 X-Demo-Role。
+  // 生产（DEMO_MODE=false）时 actorFromDemoRole 会抛 401，隔离入口自动失效。
+  private async actorOrDemo(cookie: string | undefined, authorization: string | undefined, demoRole: string | undefined) {
+    try {
+      return await this.auth.actorFromRequest(cookie, authorization)
+    } catch {
+      return this.identity.actorFromDemoRole(demoRole)
+    }
+  }
+
   @Get('internal/app-context/:appId')
-  async appContext(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('appId') appId: string, @Res({ passthrough: true }) response: any) {
-    const actor = await this.auth.actorFromRequest(cookie, authorization)
+  async appContext(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Headers('x-demo-role') demoRole: string | undefined, @Param('appId') appId: string, @Res({ passthrough: true }) response: any) {
+    const actor = await this.actorOrDemo(cookie, authorization, demoRole)
     if (!this.apps.list(actor.role).some(app => app.id === appId && app.permitted)) throw new ForbiddenException('当前岗位无权访问该应用。')
     response.header('X-Workbench-Admin', actor.isAdmin === true ? 'true' : 'false')
     return { ok: true }
   }
 
   @Get('internal/app-access/:appId')
-  async appAccess(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('appId') appId: string) {
-    const actor = await this.auth.actorFromRequest(cookie, authorization)
+  async appAccess(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Headers('x-demo-role') demoRole: string | undefined, @Param('appId') appId: string) {
+    const actor = await this.actorOrDemo(cookie, authorization, demoRole)
     if (!this.apps.list(actor.role).some(app => app.id === appId && app.permitted)) throw new ForbiddenException('当前岗位无权访问该应用。')
     return { ok: true }
   }
