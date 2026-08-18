@@ -652,6 +652,13 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-manage-edit button { border: 1px solid #d8d9d4; background: #fff; border-radius: 7px; font-size: 11px; color: #61798a; padding: 5px 11px; white-space: nowrap; }
 .org-manage-edit button:first-of-type { border-color: #111315; background: #111315; color: #fff; }
 .account-feedback.success { border-color: #b7e0c4; background: #edf7ef; color: #24643b; }
+/* 弹窗提示 toast */
+.toast-popup { position: fixed; top: 22px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; justify-content: center; max-width: min(560px, calc(100vw - 32px)); }
+.toast { padding: 11px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; line-height: 1.5; box-shadow: 0 12px 34px rgba(10, 16, 22, .2); animation: toast-in .18s ease-out; }
+.toast.success { background: #edf7ef; color: #24643b; border: 1px solid #b7e0c4; }
+.toast.error { background: #fff4f2; color: #9b251d; border: 1px solid #f0b7b1; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+
 .org-manage-bar { display: flex; align-items: center; gap: 8px; margin: 16px 0 4px; flex-wrap: wrap; }
 .org-manage-bar .primary-button { border: 0; }
 .org-manage-jump-spacer { flex: 1; }

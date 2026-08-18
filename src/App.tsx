@@ -305,6 +305,11 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const refresh = async () => { try { setUsers(await getServerUsers()) } catch { setNotice('无法读取账号列表，请重新登录后再试。') } }
   const refreshOrg = async () => { try { const [d, f] = await Promise.all([getOrgTree(), getAccountFields().catch(() => null)]); setOrgDepts(d); setAccountFields(f) } catch { /* 下拉不可用时仍可创建账号 */ } }
   useEffect(() => { void refresh(); void refreshOrg() }, [])
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(''), 3200)
+    return () => window.clearTimeout(timer)
+  }, [notice])
   const save = async (event: FormEvent) => {
     event.preventDefault()
     const role = (draft.role ?? '').trim()
@@ -420,7 +425,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     </div>
 
     <div style={{ display: adminView === 'accounts' ? undefined : 'none' }}>
-    {notice && <p className="account-feedback" role="status">{notice}</p>}
+    {notice && <div className="toast-popup" role="status"><span className="toast error">{notice}</span></div>}
 
     <div className="account-depts">
       {[...new Set([...DEPT_ORDER, ...(accountFields?.departments ?? [])]), '其他'].map(dept => {

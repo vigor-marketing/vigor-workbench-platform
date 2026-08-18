@@ -39,6 +39,13 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
   }
   useEffect(() => { void load() }, [])
 
+  // 弹窗提示自动消失
+  useEffect(() => {
+    if (!error && !success) return
+    const timer = window.setTimeout(() => { setError(''); setSuccess('') }, 3200)
+    return () => window.clearTimeout(timer)
+  }, [error, success])
+
   const builtinRoles = Object.entries(roles)
   const allRoleOptions = [...builtinRoles.filter(([id]) => !disabledRoles.includes(id)).map(([id, item]) => ({ value: id, label: roleLabels[id] ?? item.label })), ...customRoles.map(r => ({ value: r, label: r }))]
   const accent = (dept: string) => DEPT_COLORS[dept] || '#15202c'
@@ -145,8 +152,7 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
   )
 
   return <div className="account-fields-wrap">
-    {error && <p className="account-feedback" role="status">{error}</p>}
-    {success && <p className="account-feedback success" role="status">{success}</p>}
+    {(error || success) && <div className="toast-popup" role="status"><span className={'toast ' + (error ? 'error' : 'success')}>{error || success}</span></div>}
 
     <div className="api-tabs org-manage-subtabs">
       <button type="button" className={view === 'depts' ? 'active' : ''} onClick={() => setView('depts')}>部门</button>
