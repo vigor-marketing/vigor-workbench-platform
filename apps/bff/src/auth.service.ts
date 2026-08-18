@@ -5,7 +5,7 @@ import { dirname } from 'node:path'
 import { config } from './config.js'
 import type { Actor, Role } from './types.js'
 
-type UserRecord = { id:string; username:string; displayName:string; role:string; isAdmin:boolean; passwordHash:string; disabled?:boolean; teamId?:string; teamName?:string; department?:string }
+type UserRecord = { id:string; username:string; displayName:string; role:string; isAdmin:boolean; passwordHash:string; disabled?:boolean; teamId?:string; teamName?:string; department?:string; departmentHead?:boolean }
 type UserStore = { version:1; users:UserRecord[] }
 type PublicUser = Actor & { username: string; disabled: boolean }
 const roles: Record<Role, Pick<Actor,'displayName'|'organizationScope'>> = {
@@ -28,14 +28,14 @@ export class AuthService {
   }
 
   async fromToken(token:string){const [head,payload,signature]=token.split('.');if(!head||!payload||!signature||this.secret().length<32)throw new UnauthorizedException('登录已失效。');const expected=crypto.createHmac('sha256',this.secret()).update(head+'.'+payload).digest('base64url');const a=Buffer.from(signature),b=Buffer.from(expected);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))throw new UnauthorizedException('登录已失效。');let data:any;try{data=JSON.parse(Buffer.from(payload,'base64url').toString('utf8'))}catch{throw new UnauthorizedException('登录已失效。')}if(data.exp<Math.floor(Date.now()/1000))throw new UnauthorizedException('登录已过期。');const user=(await this.load()).users.find(item=>item.id===data.sub&&!item.disabled);if(!user)throw new UnauthorizedException('账号不可用。');return this.publicUser(user)}
- publicUser(user:UserRecord): PublicUser { return {id:user.id,username:user.username,displayName:user.displayName,role:user.role as Role,isAdmin:user.isAdmin,organizationScope:roles[user.role as Role]?.organizationScope ?? '按管理员配置的岗位范围访问',teamId:user.teamId,teamName:user.teamName,department:user.department,disabled:user.disabled===true}}
+ publicUser(user:UserRecord): PublicUser { return {id:user.id,username:user.username,displayName:user.displayName,role:user.role as Role,isAdmin:user.isAdmin,organizationScope:roles[user.role as Role]?.organizationScope ?? '按管理员配置的岗位范围访问',teamId:user.teamId,teamName:user.teamName,department:user.department,departmentHead:user.departmentHead===true,disabled:user.disabled===true}}
  private issue(user:UserRecord){if(this.secret().length<32)throw new UnauthorizedException('服务端会话密钥未配置。');const head=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),payload=Buffer.from(JSON.stringify({sub:user.id,iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+28800})).toString('base64url');return head+'.'+payload+'.'+crypto.createHmac('sha256',this.secret()).update(head+'.'+payload).digest('base64url')}
 
   async listUsers() {
     return (await this.load()).users.map(user => this.publicUser(user))
   }
 
-  async saveUser(input: { id?: string; username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string }) {
+  async saveUser(input: { id?: string; username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string; departmentHead?: boolean }) {
     const store = await this.load()
     const username = input.username?.trim()
     const displayName = input.displayName?.trim()
@@ -49,11 +49,11 @@ export class AuthService {
     let user = input.id ? store.users.find(item => item.id === input.id) : store.users.find(item => item.username === username)
     if (user) {
       if (user.username !== username && store.users.some(item => item.username === username)) throw new UnauthorizedException('账号已存在。')
-      user.username = username; user.displayName = displayName; user.role = role; user.isAdmin = input.isAdmin === true; user.disabled = input.disabled === true; user.teamId = teamId; user.teamName = teamName; user.department = department
+      user.username = username; user.displayName = displayName; user.role = role; user.isAdmin = input.isAdmin === true; user.disabled = input.disabled === true; user.teamId = teamId; user.teamName = teamName; user.department = department; user.departmentHead = input.departmentHead === true
       if (input.password) { if (input.password.length < 8) throw new UnauthorizedException('密码至少需要 8 位。'); user.passwordHash = hash(input.password) }
     } else {
       if (!input.password || input.password.length < 8) throw new UnauthorizedException('新账号密码至少需要 8 位。')
-      user = { id: crypto.randomUUID(), username, displayName, role, isAdmin: input.isAdmin === true, disabled: input.disabled === true, teamId, teamName, department, passwordHash: hash(input.password) }
+      user = { id: crypto.randomUUID(), username, displayName, role, isAdmin: input.isAdmin === true, disabled: input.disabled === true, teamId, teamName, department, departmentHead: input.departmentHead === true, passwordHash: hash(input.password) }
       store.users.push(user)
     }
     await this.persist()

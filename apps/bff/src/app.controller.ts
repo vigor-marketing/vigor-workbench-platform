@@ -78,13 +78,13 @@ export class AppController {
   async listUsers(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.auth.listUsers() }
 
   @Put('admin/users/:id')
-  async saveUser(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('id') id: string, @Body() body?: { username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string }) {
+  async saveUser(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('id') id: string, @Body() body?: { username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string; departmentHead?: boolean }) {
     await this.admin(cookie, authorization)
     return this.auth.saveUser({ ...body, id, role: body?.role as any }).catch(error => { throw new BadRequestException(error.message) })
   }
 
   @Post('admin/users')
-  async createUser(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: { username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string }) {
+  async createUser(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: { username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string; departmentHead?: boolean }) {
     await this.admin(cookie, authorization)
     return this.auth.saveUser({ ...body, role: body?.role as any }).catch(error => { throw new BadRequestException(error.message) })
   }

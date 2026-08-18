@@ -20,6 +20,7 @@ export type Actor = {
   teamId?: string
   teamName?: string
   department?: string
+  departmentHead?: boolean
 }
 
 export type TodoPriority = 'high' | 'medium' | 'normal'

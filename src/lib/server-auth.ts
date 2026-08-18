@@ -8,6 +8,7 @@ export type ServerUser = {
   teamId?: string
   teamName?: string
   department?: string
+  departmentHead?: boolean
 }
 
 async function request(path: string, init?: RequestInit) {

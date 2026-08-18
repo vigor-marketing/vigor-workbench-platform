@@ -298,7 +298,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const [orgDepts, setOrgDepts] = useState<OrgDeptNode[]>([])
   const [notice, setNotice] = useState('')
   const [draft, setDraft] = useState<any>(null)
-  const empty = { username: '', displayName: '', role: 'salesperson', password: '', department: '', teamName: '', isAdmin: false, disabled: false, addingRole: false, addingTeam: false, newTeam: '', prevRole: '' }
+  const empty = { username: '', displayName: '', role: 'salesperson', password: '', department: '', teamName: '', isAdmin: false, disabled: false, departmentHead: false, addingRole: false, addingTeam: false, newTeam: '', prevRole: '' }
   const refresh = async () => { try { setUsers(await getServerUsers()) } catch { setNotice('无法读取账号列表，请重新登录后再试。') } }
   const refreshOrg = async () => { try { setOrgDepts(await getOrgTree()) } catch { /* 部门下拉不可用时仍可创建账号 */ } }
   useEffect(() => { void refresh(); void refreshOrg() }, [])
@@ -311,6 +311,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
       username: draft.username, displayName: draft.displayName, role,
       isAdmin: draft.isAdmin === true, disabled: draft.disabled === true,
       department: draft.department, teamName: draft.teamName || undefined,
+      departmentHead: draft.departmentHead === true,
       ...(draft.password ? { password: draft.password } : {}),
     }
     try { await saveServerUser(draft.id ?? null, payload); setNotice(draft.id ? '账号资料已更新。' : '新账号已创建。'); setDraft(null); await refresh(); await refreshOrg() }
@@ -323,7 +324,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     catch (error) { setNotice(error instanceof Error ? error.message : '新增小组失败。') }
   }
   const toggleDisabled = async (user: any) => {
-    try { await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, disabled: !user.disabled, department: user.department, teamName: user.teamName }); await refresh() }
+    try { await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, disabled: !user.disabled, department: user.department, teamName: user.teamName, departmentHead: user.departmentHead === true }); await refresh() }
     catch (error) { setNotice(error instanceof Error ? error.message : '操作失败。') }
   }
   const remove = async (user: any) => {
@@ -344,6 +345,15 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   }
   const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
   const deptOf = (user: any) => user.department || ROLE_DEPT[roles[user.role as Role]?.label ?? user.role] || '其他'
+  // 部门主管 = 该部门最高岗位（岗位与部门联动）
+  const HEAD_ROLE: Record<string, string> = {
+    '总经理办公室': 'general_manager', '人力总经办': 'hr_director',
+    '销售部': 'sales_manager', '采购部': 'procurement_manager',
+    '销售支持组': 'sales_support', '市场运营组': 'market_team',
+    '船务部': 'shipping_manager', '财务部': 'finance_manager',
+  }
+  const headRoleOf = (department: string) => HEAD_ROLE[department]
+  const isHeadRole = (department: string, role: string) => Boolean(department && headRoleOf(department) === role)
   const byDept = new Map<string, any[]>()
   for (const u of users) { const d = deptOf(u); if (!byDept.has(d)) byDept.set(d, []); byDept.get(d)!.push(u) }
 
@@ -372,6 +382,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         <div className="account-card-badges">
           <em className="role">{roleLabel}</em>
           {user.isAdmin && <em className="admin">管理员</em>}
+          {user.departmentHead && <em className="head">部门主管</em>}
           <em className={user.disabled ? 'off' : 'on'}>{user.disabled ? '已停用' : '已启用'}</em>
         </div>
       </div>
@@ -396,8 +407,9 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         if (!list.length) return null
         const salesTeams = dept === '销售部' ? [...new Set(list.map(u => u.teamName).filter(Boolean))] : []
         const accent = DEPT_COLORS[dept] || '#15202c'
+        const deptHead = list.find(u => u.departmentHead)
         return <section className="account-dept" key={dept} style={{ borderTop: `3px solid ${accent}` }}>
-          <header className="account-dept-head"><span className="account-dept-mark" style={{ background: accent }}>{dept.slice(0, 1)}</span><h2>{dept}</h2><small>{list.length} 个账号</small></header>
+          <header className="account-dept-head"><span className="account-dept-mark" style={{ background: accent }}>{dept.slice(0, 1)}</span><h2>{dept}</h2>{deptHead && <span className="account-dept-head-chip"><i style={{ background: accent }}>{deptHead.displayName.slice(0, 1)}</i>{deptHead.displayName} · 主管</span>}<small>{list.length} 个账号</small></header>
           <div className="account-dept-body">
             {salesTeams.length > 1 ? salesTeams.map(team => (
               <div className="account-team-group" key={team}>
@@ -416,7 +428,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         <div className="org-modal-fields">
           <label>账号<input required value={draft.username} onChange={e => setDraft({ ...draft, username: e.target.value })} placeholder="例如：judy" /></label>
           <label>姓名<input required value={draft.displayName} onChange={e => setDraft({ ...draft, displayName: e.target.value })} placeholder="员工姓名" /></label>
-          <label>部门<select required value={draft.department ?? ''} onChange={e => setDraft({ ...draft, department: e.target.value, teamName: '', addingTeam: false, newTeam: '' })}>
+          <label>部门<select required value={draft.department ?? ''} onChange={e => { const dept = e.target.value; setDraft({ ...draft, department: dept, teamName: '', addingTeam: false, newTeam: '', departmentHead: isHeadRole(dept, draft.role) ? (draft.id ? draft.departmentHead : true) : false }) }}>
             <option value="" disabled>请选择部门</option>
             {orgDepts.map(d => <option key={d.department} value={d.department}>{d.department}</option>)}
           </select></label>
@@ -433,11 +445,11 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
             </select>
           )}</label>}
           <label>岗位{draft.addingRole ? (
-            <span className="org-modal-inline-add"><input autoFocus required value={draft.role ?? ''} onChange={e => setDraft({ ...draft, role: e.target.value })} placeholder="新岗位名称，如 培训专员" /><button type="button" onClick={() => setDraft({ ...draft, addingRole: false })}>确定</button><button type="button" onClick={() => setDraft({ ...draft, addingRole: false, role: draft.prevRole || 'salesperson' })}>取消</button></span>
+            <span className="org-modal-inline-add"><input autoFocus required value={draft.role ?? ''} onChange={e => setDraft({ ...draft, role: e.target.value })} placeholder="新岗位名称，如 培训专员" /><button type="button" onClick={() => setDraft({ ...draft, addingRole: false, departmentHead: isHeadRole(draft.department, (draft.role ?? '').trim()) ? (draft.id ? draft.departmentHead : true) : false })}>确定</button><button type="button" onClick={() => setDraft({ ...draft, addingRole: false, role: draft.prevRole || 'salesperson' })}>取消</button></span>
           ) : (
             <select required value={allRoleOptions.some(o => o.value === draft.role) ? draft.role : ''} onChange={e => {
               if (e.target.value === '__new_role__') setDraft({ ...draft, addingRole: true, role: '', prevRole: draft.role })
-              else setDraft({ ...draft, role: e.target.value })
+              else { const nextRole = e.target.value; setDraft({ ...draft, role: nextRole, departmentHead: isHeadRole(draft.department, nextRole) ? (draft.id ? draft.departmentHead : true) : false }) }
             }}>
               <option value="" disabled>请选择岗位</option>
               {allRoleOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -447,8 +459,10 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
           <label>密码{draft.id ? '（留空则不修改）' : ''}<input minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e => setDraft({ ...draft, password: e.target.value })} placeholder={draft.id ? '留空保持原密码' : '默认 Vigor@2026'} /></label>
           <div className="org-modal-checks">
             <label><input type="checkbox" checked={draft.isAdmin} onChange={e => setDraft({ ...draft, isAdmin: e.target.checked })} /> 管理员</label>
+            <label><input type="checkbox" checked={draft.departmentHead} disabled={!isHeadRole(draft.department, draft.role)} title={isHeadRole(draft.department, draft.role) ? '该岗位为该部门最高职位' : '仅该部门最高岗位（' + (headRoleOf(draft.department) ? (roles[headRoleOf(draft.department) as Role]?.label ?? headRoleOf(draft.department)) : '—') + '）可设为主管'} onChange={e => setDraft({ ...draft, departmentHead: e.target.checked })} /> 部门主管</label>
             <label><input type="checkbox" checked={draft.disabled} onChange={e => setDraft({ ...draft, disabled: e.target.checked })} /> 停用账号</label>
           </div>
+          {draft.department && !isHeadRole(draft.department, draft.role) && <p className="org-modal-hint">部门主管需选择该部门最高岗位（{headRoleOf(draft.department) ? (roles[headRoleOf(draft.department) as Role]?.label ?? headRoleOf(draft.department)) : '—'}）后勾选。</p>}
         </div>
         <div className="org-modal-actions">
           <button type="submit" className="primary-button">{draft.id ? '保存账号变更' : '创建账号'}</button>
