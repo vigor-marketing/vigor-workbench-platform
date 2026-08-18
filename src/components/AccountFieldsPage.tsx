@@ -14,6 +14,7 @@ export function AccountFieldsPage() {
   const [newTeam, setNewTeam] = useState('')
   const [newRole, setNewRole] = useState('')
   const [dirty, setDirty] = useState(false)
+  const [view, setView] = useState<'depts' | 'teams' | 'roles' | 'heads'>('depts')
 
   const load = async () => {
     try { const f = await getAccountFields(); setFields(f); setDeptForTeams(f.departments[0] ?? ''); setRenames([]); setDirty(false) }
@@ -91,24 +92,24 @@ export function AccountFieldsPage() {
 
   if (!fields) return <div className="org-manage-loading"><p>加载中…</p></div>
 
-  const jumpTo = (id: string) => { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
-
   return <div className="account-fields-wrap">
-    <div className="org-manage-jump">
-      <span className="org-manage-jump-label">快捷跳转</span>
-      <button type="button" onClick={() => jumpTo('af-depts')}>部门</button>
-      <button type="button" onClick={() => jumpTo('af-teams')}>小组</button>
-      <button type="button" onClick={() => jumpTo('af-roles')}>岗位</button>
-      <button type="button" onClick={() => jumpTo('af-heads')}>主管规则</button>
-      <span className="org-manage-jump-spacer" />
+    <div className="org-manage-bar">
       {dirty && <em className="org-manage-dirty">有未保存修改</em>}
+      <span className="org-manage-jump-spacer" />
       <button type="button" className="text-action" onClick={() => void load()}>放弃并刷新</button>
       <button type="button" className="primary-button" onClick={() => void save()}>保存全部修改</button>
     </div>
     {error && <p className="account-feedback" role="status">{error}</p>}
     {success && <p className="account-feedback success" role="status">{success}</p>}
 
-    <section className="org-manage-section" id="af-depts">
+    <div className="api-tabs org-manage-subtabs">
+      <button type="button" className={view === 'depts' ? 'active' : ''} onClick={() => setView('depts')}>部门</button>
+      <button type="button" className={view === 'teams' ? 'active' : ''} onClick={() => setView('teams')}>小组</button>
+      <button type="button" className={view === 'roles' ? 'active' : ''} onClick={() => setView('roles')}>岗位</button>
+      <button type="button" className={view === 'heads' ? 'active' : ''} onClick={() => setView('heads')}>主管规则</button>
+    </div>
+
+    {view === 'depts' && <section className="org-manage-section">
       <h2 className="org-manage-sub">部门选项</h2>
       <form className="org-manage-add" onSubmit={submitDept}>
         <input required value={newDept} onChange={e => setNewDept(e.target.value)} placeholder="新部门选项，如 海外事业部" />
@@ -126,9 +127,9 @@ export function AccountFieldsPage() {
           </div>
         ))}
       </div>
-    </section>
+    </section>}
 
-    <section className="org-manage-section" id="af-teams">
+    {view === 'teams' && <section className="org-manage-section">
       <h2 className="org-manage-sub">小组选项（按部门）</h2>
       <label className="org-manage-dept-select">部门<select value={deptForTeams} onChange={e => setDeptForTeams(e.target.value)}>{fields.departments.map(d => <option key={d} value={d}>{d}</option>)}</select></label>
       <form className="org-manage-add" onSubmit={submitTeam}>
@@ -148,9 +149,9 @@ export function AccountFieldsPage() {
         ))}
         {!(fields.teams[deptForTeams] ?? []).length && <p className="org-empty">该部门暂无小组选项。</p>}
       </div>
-    </section>
+    </section>}
 
-    <section className="org-manage-section" id="af-roles">
+    {view === 'roles' && <section className="org-manage-section">
       <h2 className="org-manage-sub">岗位选项</h2>
       <form className="org-manage-add" onSubmit={submitRole}>
         <input required value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="新岗位选项，如 培训专员" />
@@ -175,9 +176,9 @@ export function AccountFieldsPage() {
           </div>
         ))}
       </div>
-    </section>
+    </section>}
 
-    <section className="org-manage-section" id="af-heads">
+    {view === 'heads' && <section className="org-manage-section">
       <h2 className="org-manage-sub">部门主管岗位规则</h2>
       <p className="org-manage-tip">每个部门选择一个岗位，选择该岗位的账号即视为该部门主管（在账号弹窗中可勾选「部门主管」）。</p>
       <div className="org-manage-list">
@@ -192,7 +193,7 @@ export function AccountFieldsPage() {
           </div>
         ))}
       </div>
-    </section>
+    </section>}
   </div>
 }
 
