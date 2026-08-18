@@ -300,6 +300,8 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const [adminView, setAdminView] = useState<'accounts' | 'fields'>('accounts')
   const [notice, setNotice] = useState('')
   const [draft, setDraft] = useState<any>(null)
+  const [resetTarget, setResetTarget] = useState<any>(null)
+  const [resetPassword, setResetPassword] = useState('')
   const empty = { username: '', displayName: '', role: 'salesperson', password: '', department: '', teamName: '', isAdmin: false, disabled: false, departmentHead: false, addingRole: false, addingTeam: false, newTeam: '', prevRole: '' }
   const refresh = async () => { try { setUsers(await getServerUsers()) } catch { setNotice('无法读取账号列表，请重新登录后再试。') } }
   const refreshOrg = async () => { try { setAccountFields(await getAccountFields()) } catch { /* 下拉不可用时仍可创建账号 */ } }
@@ -340,6 +342,17 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     if (!window.confirm(`确定删除账号「${user.displayName}（${user.username}）」？此操作不可恢复。`)) return
     try { await deleteServerUser(user.id); setNotice('账号已删除。'); await refresh() }
     catch (error) { setNotice(error instanceof Error ? error.message : '删除失败。') }
+  }
+  // 单独重置某账号密码
+  const resetPwd = async () => {
+    if (!resetTarget) return
+    const pwd = resetPassword.trim()
+    if (pwd.length < 8) { setNotice('新密码至少需要 8 位。'); return }
+    try {
+      await saveServerUser(resetTarget.id, { username: resetTarget.username, displayName: resetTarget.displayName, role: resetTarget.role, isAdmin: resetTarget.isAdmin === true, disabled: resetTarget.disabled === true, department: resetTarget.department, teamName: resetTarget.teamName, departmentHead: resetTarget.departmentHead === true, password: pwd })
+      setNotice(`已重置「${resetTarget.displayName}」的登录密码。`)
+      setResetTarget(null); setResetPassword(''); await refresh()
+    } catch (error) { setNotice(error instanceof Error ? error.message : '重置失败，请重试。') }
   }
   if (!currentUser.isAdmin) return <section className="page"><div className="state-card"><h2>无管理权限</h2><p>仅管理员可修改账号与岗位。</p></div></section>
 
@@ -409,6 +422,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
       </div>
       <div className="account-card-actions">
         <button type="button" onClick={() => setDraft({ ...user, password: '', department: user.department || deptOf(user), addingRole: false, addingTeam: false, newTeam: '', prevRole: user.role })}>编辑</button>
+        <button type="button" onClick={() => { setResetTarget(user); setResetPassword('') }}>重置密码</button>
         <button type="button" onClick={() => void toggleDisabled(user)}>{user.disabled ? '启用' : '停用'}</button>
         <button type="button" className="danger" onClick={() => void remove(user)}>删除</button>
       </div>
@@ -458,6 +472,20 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     <div style={{ display: adminView === 'fields' ? undefined : 'none' }}>
       <AccountFieldsPage onSaved={() => { void refresh(); void refreshOrg() }} />
     </div>
+
+    {resetTarget && <div className="org-modal-backdrop" onClick={() => { setResetTarget(null); setResetPassword('') }}>
+      <div className="org-modal" onClick={e => e.stopPropagation()}>
+        <h3>重置密码</h3>
+        <div className="org-modal-fields">
+          <label>账号<input value={resetTarget.displayName + '（' + resetTarget.username + '）'} readOnly /></label>
+          <label>新密码<input autoFocus required minLength={8} type="password" value={resetPassword} onChange={e => setResetPassword(e.target.value)} placeholder="至少 8 位，重置后需通知该账号" /></label>
+        </div>
+        <div className="org-modal-actions">
+          <button type="button" className="primary-button" onClick={() => void resetPwd()}>确认重置</button>
+          <button type="button" onClick={() => { setResetTarget(null); setResetPassword('') }}>取消</button>
+        </div>
+      </div>
+    </div>}
 
     {draft && <div className="org-modal-backdrop" onClick={() => setDraft(null)}>
       <form className="org-modal" onClick={e => e.stopPropagation()} onSubmit={save}>
