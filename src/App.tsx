@@ -134,7 +134,6 @@ function Layout() {
       <header className="topbar">
         <div className="topbar-leading"><button className="navigation-toggle" type="button" aria-label={sidebarOpen ? '关闭主导航' : sidebarPinned ? '取消固定侧边栏' : '固定侧边栏'} aria-expanded={sidebarOpen || !sidebarCollapsed} aria-controls="workspace-sidebar" onClick={toggleNav}><span /><span /><span /></button><div className="crumb"><span>VIGOR</span><b>/</b><span>统一办公平台</span></div></div>
         <div className="top-actions">
-          <button className="icon-button" aria-label="搜索"><Icon name="search" /></button>
           <div className="notification-wrap">
             <button className={`icon-button notification ${hasNewNotifications ? 'has-new' : ''}`} type="button" aria-label={`通知：${pendingNotifications.length} 项未读`} aria-expanded={notificationOpen} aria-controls="notification-panel" onClick={() => { setNotificationOpen(open => !open); setHasNewNotifications(false) }}>
               <Icon name="bell" />
