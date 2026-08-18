@@ -1,0 +1,24 @@
+# 040 – 新增「账号字段」独立页面（管理新增/编辑账号弹窗的字段选项，含新增和删除）
+
+## 需求
+「我需要有一个单独的页面来管理编辑，新增账号的字段，包含新增和删除」+「不动原来的账号与权限的页面」
+
+## 方案
+- 新增独立页面「账号字段」（路由 /admin/account-fields，导航位于「账号与权限」之后，icon layers）。
+- 管理「账号 新增/修改」弹窗的字段选项：**部门选项 / 小组选项（按部门）/ 岗位选项（内置只读 + 自定义）/ 部门主管岗位规则**，均可新增、重命名、删除。
+- 账号与权限页面**其余部分（卡片、分组、徽标、主管 chip、按组展示等）完全不动**；仅弹窗下拉的数据源切换到该配置（选项内容与组织架构一致，视觉无变化）。
+
+## BFF
+- 复用 037 的 `account-fields.service.ts`（存 /var/lib/vigor-workbench/account-fields.json），首次从 org.json 迁移生成；本次新增：小组选项按组织架构排序（销售 V1–V5；采购 一组/二组/质量组）。
+- `auth.service.ts` 补回 renameDepartment/renameTeam/renameRole + count*（级联与删除保护）。
+- controller：GET/PUT /api/account-fields（PUT 支持 renames 级联 + 删除保护）+ POST account-fields/teams|roles。
+
+## 前端
+- `AccountFieldsPage.tsx`（复用 037）：部门/小组/岗位/主管规则四段，本地编辑 +「保存全部修改」。
+- 账号弹窗（App.tsx PermissionAdminPage）：部门下拉 = config.departments；小组下拉 = config.teams（按组织排序）；岗位下拉 = 内置 + config.customRoles + 账号中使用岗位；主管规则 = config.headRoles（回退内置默认）；弹窗内联新增小组/岗位 → account-fields 接口。
+- styles.css 合并 org-manage 样式；Icon 补回 layers。
+
+## 验证（部署后）
+- account-fields 首次生成：8 部门、采购部 = 采购一组/二组/质量组（排序正确）、销售部 V1–V5、主管规则含 销售支持组组长/市场运营组组长。
+- UI 全链路（Playwright）：账号弹窗采购部小组下拉三组有序；账号页采购部子分组不变；字段页新增小组「资金组」+岗位「资金专员」+改财务部主管岗位 → 保存 → 弹窗财务部出现资金组、会计主管勾选禁用、资金专员主管勾选可用；无 JS 报错；测试改动已清理还原。
+- 提交：`df0f36e`（功能）、`6502dd9`（编译修复）。部署已生效。
