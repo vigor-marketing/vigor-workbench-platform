@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { getAccountFields, saveAccountFields, type AccountFields } from '../lib/server-auth'
+import { getAccountFields, getServerUsers, saveAccountFields, type AccountFields } from '../lib/server-auth'
 import { DEPT_COLORS, roles, type Role } from '../data/workbench'
 
 type Rename = { type: 'department' | 'team' | 'role'; from: string; to: string; department?: string }
@@ -22,11 +22,15 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
   const [newDept, setNewDept] = useState('')
   const [newTeam, setNewTeam] = useState('')
   const [newRole, setNewRole] = useState('')
+  const [users, setUsers] = useState<any[]>([])
+  const [editing, setEditing] = useState<{ kind: 'dept' | 'team' | 'role'; from: string; department?: string } | null>(null)
+  const [editValue, setEditValue] = useState('')
 
   const load = async () => {
     try {
-      const f = await getAccountFields()
+      const [f, u] = await Promise.all([getAccountFields(), getServerUsers().catch(() => [])])
       setBase(f); setDepts(f.departments); setTeams(f.teams); setCustomRoles(f.customRoles); setHeads(f.headRoles)
+      setUsers(u as any[])
       setDeptForTeams(f.departments[0] ?? '')
       setRenames([]); setDirty({ depts: false, teams: false, roles: false, heads: false })
     } catch { setError('加载失败，请重新登录后再试。') }
@@ -61,9 +65,7 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     setDirty(d => ({ ...d, [k]: false }))
   }
 
-  const renameDept = (from: string) => {
-    const to = window.prompt('重命名部门为：', from)?.trim()
-    if (!to || to === from) return
+  const renameDeptTo = (from: string, to: string) => {
     setDepts(depts.map(d => d === from ? to : d))
     setTeams(prev => { const n = { ...prev }; if (n[from]) { n[to] = n[from]; delete n[from] } return n })
     setHeads(prev => { const n = { ...prev }; if (n[from]) { n[to] = n[from]; delete n[from] } return n })
@@ -78,22 +80,38 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
   }
   const submitDept = (event: FormEvent) => { event.preventDefault(); if (!newDept.trim()) return; setDepts([...depts, newDept.trim()]); setNewDept(''); touch('depts') }
 
-  const renameTeam = (dept: string, from: string) => {
-    const to = window.prompt('重命名小组为：', from)?.trim()
-    if (!to || to === from) return
+  const renameTeamTo = (dept: string, from: string, to: string) => {
     setTeams({ ...teams, [dept]: (teams[dept] ?? []).map(t => t === from ? to : t) })
     setRenames([...renames, { type: 'team', department: dept, from, to }]); touch('teams')
   }
   const removeTeam = (dept: string, team: string) => { setTeams({ ...teams, [dept]: (teams[dept] ?? []).filter(t => t !== team) }); touch('teams') }
   const submitTeam = (event: FormEvent) => { event.preventDefault(); if (!newTeam.trim()) return; setTeams({ ...teams, [deptForTeams]: [...(teams[deptForTeams] ?? []), newTeam.trim()] }); setNewTeam(''); touch('teams') }
 
-  const renameRole = (from: string) => {
-    const to = window.prompt('重命名岗位为：', from)?.trim()
-    if (!to || to === from) return
+  const builtinIds = new Set(builtinRoles.map(([id]) => id))
+  const builtinLabels = new Set(builtinRoles.map(([, item]) => item.label))
+  const usedCustomRoles = [...new Set(users.map(u => String(u.role || '').trim()).filter(r => r && !builtinIds.has(r) && !builtinLabels.has(r)))]
+  const displayCustomRoles = [...new Set([...customRoles, ...usedCustomRoles])]
+  const roleUsage = (name: string) => users.filter(u => u.role === name).length
+
+  const renameRoleTo = (from: string, to: string) => {
     setCustomRoles(customRoles.map(r => r === from ? to : r))
     setRenames([...renames, { type: 'role', from, to }]); touch('roles')
   }
-  const removeRole = (name: string) => { setCustomRoles(customRoles.filter(r => r !== name)); touch('roles') }
+  const beginEdit = (kind: 'dept' | 'team' | 'role', from: string, department?: string) => { setEditing({ kind, from, department }); setEditValue(from) }
+  const commitRename = () => {
+    if (!editing) return
+    const to = editValue.trim()
+    setEditing(null)
+    if (!to || to === editing.from) return
+    if (editing.kind === 'dept') renameDeptTo(editing.from, to)
+    else if (editing.kind === 'team') renameTeamTo(editing.department ?? '', editing.from, to)
+    else renameRoleTo(editing.from, to)
+  }
+  const removeRole = (name: string) => {
+    const usage = roleUsage(name)
+    if (usage > 0) { setSuccess(''); setError(`岗位「${name}」正在被 ${usage} 个账号使用，无法删除，请先在账号与权限中调整。`); return }
+    setCustomRoles(customRoles.filter(r => r !== name)); touch('roles')
+  }
   const submitRole = (event: FormEvent) => {
     event.preventDefault()
     const n = newRole.trim()
@@ -138,9 +156,11 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
           {depts.map(d => (
             <div className="org-manage-row" key={d}>
               <span className="org-manage-mark" style={{ background: accent(d) }}>{d.slice(0, 1)}</span>
-              <span className="org-manage-name"><b>{d}</b><small>{(teams[d] ?? []).length} 个小组 · 主管岗位：{roleLabelOf(heads[d])}</small></span>
+              {editing?.kind === 'dept' && editing.from === d
+                ? <span className="org-manage-edit"><input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(null) }} /><button type="button" onClick={() => commitRename()}>保存</button><button type="button" onClick={() => setEditing(null)}>取消</button></span>
+                : <span className="org-manage-name"><b>{d}</b><small>{(teams[d] ?? []).length} 个小组 · 主管岗位：{roleLabelOf(heads[d])}</small></span>}
               <span className="org-manage-actions">
-                <button type="button" onClick={() => renameDept(d)}>重命名</button>
+                <button type="button" onClick={() => beginEdit('dept', d)}>重命名</button>
                 <button type="button" className="danger" onClick={() => removeDept(d)}>删除</button>
               </span>
             </div>
@@ -162,9 +182,11 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
           {(teams[deptForTeams] ?? []).map(t => (
             <div className="org-manage-row" key={t}>
               <span className="org-manage-mark" style={{ background: accent(deptForTeams) }}>{t.slice(0, 1)}</span>
-              <span className="org-manage-name"><b>{t}</b><small>{deptForTeams}</small></span>
+              {editing?.kind === 'team' && editing.department === deptForTeams && editing.from === t
+                ? <span className="org-manage-edit"><input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(null) }} /><button type="button" onClick={() => commitRename()}>保存</button><button type="button" onClick={() => setEditing(null)}>取消</button></span>
+                : <span className="org-manage-name"><b>{t}</b><small>{deptForTeams}</small></span>}
               <span className="org-manage-actions">
-                <button type="button" onClick={() => renameTeam(deptForTeams, t)}>重命名</button>
+                <button type="button" onClick={() => beginEdit('team', t, deptForTeams)}>重命名</button>
                 <button type="button" className="danger" onClick={() => removeTeam(deptForTeams, t)}>删除</button>
               </span>
             </div>
@@ -190,16 +212,21 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
               <span className="org-manage-actions" />
             </div>
           ))}
-          {customRoles.map(r => (
-            <div className="org-manage-row" key={r}>
+          {displayCustomRoles.map(r => {
+            const usage = roleUsage(r)
+            const inConfig = customRoles.includes(r)
+            return <div className="org-manage-row" key={r}>
               <span className="org-manage-mark" style={{ background: '#61798a' }}>{r.slice(0, 1)}</span>
-              <span className="org-manage-name"><b>{r}</b><small>自定义岗位</small></span>
+              {editing?.kind === 'role' && editing.from === r
+                ? <span className="org-manage-edit"><input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(null) }} /><button type="button" onClick={() => commitRename()}>保存</button><button type="button" onClick={() => setEditing(null)}>取消</button></span>
+                : <span className="org-manage-name"><b>{r}</b><small>{inConfig ? '自定义岗位' : '账号中使用的岗位'} · {usage} 个账号</small></span>}
               <span className="org-manage-actions">
-                <button type="button" onClick={() => renameRole(r)}>重命名</button>
+                <button type="button" onClick={() => beginEdit('role', r)}>重命名</button>
                 <button type="button" className="danger" onClick={() => removeRole(r)}>删除</button>
               </span>
             </div>
-          ))}
+          })}
+          {!displayCustomRoles.length && <p className="org-empty">暂无自定义岗位。</p>}
         </div>
       </section>
     </>}
