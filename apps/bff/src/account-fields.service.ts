@@ -52,7 +52,17 @@ export class AccountFieldsService {
     return this.cache
   }
 
-  // 首次初始化：从组织架构(org.json)与岗位库(roles.json)迁移
+  // 与组织架构一致的组排序：销售 V1–V5；采购 一组/二组/质量组
+  const teamRank = (dept: string, team: string): number => {
+    if (dept === '销售部') { const m = team.match(/V(\d+)/); if (m) return Number(m[1]) }
+    if (dept === '采购部') { if (team.includes('一组') || team.includes('一单元')) return 1; if (team.includes('二组') || team.includes('二单元')) return 2; if (team.includes('质量')) return 3 }
+    return 99
+  }
+  private sortTeams(dept: string, teams: string[]): string[] {
+    return [...teams].sort((a, b) => teamRank(dept, a) - teamRank(dept, b))
+  }
+
+  // 首次初始化：从组织架构(org.json)迁移
   private async seed(): Promise<AccountFields> {
     const departments = [...DEFAULT_DEPARTMENTS]
     const teams: Record<string, string[]> = { ...DEFAULT_TEAMS }
@@ -62,7 +72,7 @@ export class AccountFieldsService {
       if (Array.isArray(org?.departments)) {
         for (const d of org.departments as { name: string; teams?: { name: string }[] }[]) {
           if (!departments.includes(d.name)) departments.push(d.name)
-          teams[d.name] = (d.teams ?? []).map((t: { name: string }) => t.name)
+          teams[d.name] = this.sortTeams(d.name, (d.teams ?? []).map((t: { name: string }) => t.name))
         }
       }
     } catch { /* org 不可用时用默认 */ }
@@ -86,7 +96,7 @@ export class AccountFieldsService {
     for (const dept of departments) {
       const list = (input.teams?.[dept] ?? current.teams?.[dept] ?? []).map(x => String(x).trim()).filter(Boolean)
       if (new Set(list).size !== list.length) throw new Error(`部门「${dept}」的小组选项不能重复。`)
-      teams[dept] = list
+      teams[dept] = this.sortTeams(dept, list)
     }
     const customRoles = (input.customRoles ?? current.customRoles).map(x => String(x).trim()).filter(Boolean)
     if (new Set(customRoles).size !== customRoles.length) throw new Error('岗位选项不能重复。')
