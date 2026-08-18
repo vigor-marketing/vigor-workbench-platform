@@ -440,7 +440,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     </div>
 
     <div style={{ display: adminView === 'fields' ? undefined : 'none' }}>
-      <AccountFieldsPage />
+      <AccountFieldsPage onSaved={refreshOrg} />
     </div>
 
     {draft && <div className="org-modal-backdrop" onClick={() => setDraft(null)}>
