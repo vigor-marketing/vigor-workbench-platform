@@ -521,7 +521,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
               <option value="__new_role__">＋ 新增岗位…</option>
             </select>
           )}</label>
-          <label>密码{draft.id ? '（留空则不修改）' : ''}<input minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e => setDraft({ ...draft, password: e.target.value })} placeholder={draft.id ? '留空保持原密码' : '默认 Vigor@2026'} /></label>
+          <label>密码{draft.id ? '（留空则不修改）' : ''}<span className="org-modal-inline-add"><input minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e => setDraft({ ...draft, password: e.target.value })} placeholder={draft.id ? '留空保持原密码' : '默认 Vigor@2026'} /><button type="button" onClick={() => setDraft({ ...draft, password: 'Vigor@2026' })} title="将密码重置为默认 Vigor@2026">重置为默认</button></span></label>
           <div className="org-modal-checks">
             <label><input type="checkbox" checked={draft.isAdmin} onChange={e => setDraft({ ...draft, isAdmin: e.target.checked })} /> 管理员</label>
             <label><input type="checkbox" checked={draft.departmentHead} disabled={!isHeadRole(draft.department, draft.role)} title={isHeadRole(draft.department, draft.role) ? '该岗位为该部门最高职位' : '仅该部门最高岗位（' + (headRoleOf(draft.department) ? roleLabelOf(headRoleOf(draft.department)) : '—') + '）可设为主管'} onChange={e => setDraft({ ...draft, departmentHead: e.target.checked })} /> 部门主管</label>
