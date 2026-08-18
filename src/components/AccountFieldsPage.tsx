@@ -127,13 +127,12 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
 
   if (!base) return <div className="org-manage-loading"><p>加载中…</p></div>
 
-  const actionBar = (k: View, label: string) => (
-    <div className="org-manage-bar">
-      {dirty[k] && <em className="org-manage-dirty">有未保存修改</em>}
-      <span className="org-manage-jump-spacer" />
-      <button type="button" className="text-action" onClick={() => resetTable(k)}>放弃本表修改</button>
-      <button type="button" className="primary-button" onClick={() => void saveTable(k)}>保存{label}</button>
-    </div>
+  const subActions = (k: View, label: string) => (
+    <span className="org-manage-sub-actions">
+      {dirty[k] && <em className="org-manage-dirty">未保存</em>}
+      <button type="button" className="text-action" onClick={() => resetTable(k)}>放弃</button>
+      <button type="button" className="text-action save" onClick={() => void saveTable(k)}>保存{label}</button>
+    </span>
   )
 
   return <div className="account-fields-wrap">
@@ -148,9 +147,8 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     </div>
 
     {view === 'depts' && <>
-      {actionBar('depts', '部门')}
       <section className="org-manage-section">
-        <h2 className="org-manage-sub">部门选项</h2>
+        <h2 className="org-manage-sub">部门选项{subActions('depts', '部门')}</h2>
         <form className="org-manage-add" onSubmit={submitDept}>
           <input required value={newDept} onChange={e => setNewDept(e.target.value)} placeholder="新部门选项，如 海外事业部" />
           <button type="submit" className="primary-button">添加部门</button>
@@ -173,9 +171,8 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     </>}
 
     {view === 'teams' && <>
-      {actionBar('teams', '小组')}
       <section className="org-manage-section">
-        <h2 className="org-manage-sub">小组选项（按部门）</h2>
+        <h2 className="org-manage-sub">小组选项（按部门）{subActions('teams', '小组')}</h2>
         <label className="org-manage-dept-select">部门<select value={deptForTeams} onChange={e => setDeptForTeams(e.target.value)}>{depts.map(d => <option key={d} value={d}>{d}</option>)}</select></label>
         <form className="org-manage-add" onSubmit={submitTeam}>
           <input required value={newTeam} onChange={e => setNewTeam(e.target.value)} placeholder="新小组选项，如 V6(新星组)" />
@@ -200,9 +197,8 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     </>}
 
     {view === 'roles' && <>
-      {actionBar('roles', '岗位')}
       <section className="org-manage-section">
-        <h2 className="org-manage-sub">岗位选项</h2>
+        <h2 className="org-manage-sub">岗位选项{subActions('roles', '岗位')}</h2>
         <form className="org-manage-add" onSubmit={submitRole}>
           <input required value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="新岗位选项，如 培训专员" />
           <button type="submit" className="primary-button">添加岗位</button>
@@ -245,9 +241,8 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     </>}
 
     {view === 'heads' && <>
-      {actionBar('heads', '主管规则')}
       <section className="org-manage-section">
-        <h2 className="org-manage-sub">部门主管岗位规则</h2>
+        <h2 className="org-manage-sub">部门主管岗位规则{subActions('heads', '主管规则')}</h2>
         <p className="org-manage-tip">每个部门选择一个岗位，选择该岗位的账号即视为该部门主管（在账号弹窗中可勾选「部门主管」）。</p>
         <div className="org-manage-list">
           {depts.map(d => (

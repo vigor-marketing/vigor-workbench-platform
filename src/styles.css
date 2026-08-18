@@ -660,7 +660,11 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .account-fields-wrap { max-width: 900px; }
 .org-manage-loading { padding: 30px 0; color: #8a97a1; font-size: 13px; }
 
-.org-manage-sub { margin: 26px 0 4px; font-size: 14px; color: #1b2430; }
+.org-manage-sub { margin: 26px 0 4px; font-size: 14px; color: #1b2430; display: flex; align-items: center; gap: 8px; }
+.org-manage-sub-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+.org-manage-sub-actions .text-action { font-size: 11px; }
+.org-manage-sub-actions .text-action.save { color: #1b2430; text-decoration: none; font-weight: 700; }
+.org-manage-sub-actions .text-action.save:hover { color: #d92d20; }
 .org-manage-section + .org-manage-section .org-manage-sub { border-top: 1px solid #e6e9e5; padding-top: 22px; }
 .org-manage-tip { margin: 6px 0 10px; color: #8a97a1; font-size: 12px; line-height: 1.6; }
 .org-manage-head-select { max-width: 260px; height: 34px; padding: 0 9px; border: 1px solid #cfd5d1; border-radius: 8px; background: #fff; font: inherit; font-size: 12.5px; color: #1b2430; }
