@@ -346,6 +346,13 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     return [...builtin, ...custom]
   }, [users])
   const teamsOf = (department: string) => orgDepts.find(d => d.department === department)?.teams.map(t => t.team) ?? []
+  // 岗位下拉选项：内置 + 自定义 + 当前草稿岗位（保证“新增岗位”后下拉能正确回显，避免必填校验拦截提交）
+  const allRoleOptions = useMemo(() => {
+    const list = [...roleOptions]
+    const cur = draft ? String(draft.role || '').trim() : ''
+    if (cur && !list.some(o => o.value === cur)) list.unshift({ value: cur, label: cur })
+    return list
+  }, [roleOptions, draft])
 
   const renderCard = (user: any) => {
     const roleLabel = roles[user.role as Role]?.label ?? user.role
@@ -420,12 +427,12 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
           <label>岗位{draft.addingRole ? (
             <span className="org-modal-inline-add"><input autoFocus required value={draft.role ?? ''} onChange={e => setDraft({ ...draft, role: e.target.value })} placeholder="新岗位名称，如 培训专员" /><button type="button" onClick={() => setDraft({ ...draft, addingRole: false })}>确定</button><button type="button" onClick={() => setDraft({ ...draft, addingRole: false, role: draft.prevRole || 'salesperson' })}>取消</button></span>
           ) : (
-            <select required value={roleOptions.some(o => o.value === draft.role) ? draft.role : ''} onChange={e => {
+            <select required value={allRoleOptions.some(o => o.value === draft.role) ? draft.role : ''} onChange={e => {
               if (e.target.value === '__new_role__') setDraft({ ...draft, addingRole: true, role: '', prevRole: draft.role })
               else setDraft({ ...draft, role: e.target.value })
             }}>
               <option value="" disabled>请选择岗位</option>
-              {roleOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {allRoleOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               <option value="__new_role__">＋ 新增岗位…</option>
             </select>
           )}</label>
