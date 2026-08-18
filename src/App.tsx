@@ -5,9 +5,10 @@ import { Icon } from './components/Icon'
 import { SalesManagementPage } from './components/SalesManagementPage'
 import { OrgPickerPage } from './components/OrgPickerPage'
 import { OrgChartPage } from './components/OrgChartPage'
+import { AccountFieldsPage } from './components/AccountFieldsPage'
 import { appUrl, apps, departments, DEPT_COLORS, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
 import { getUsers, isAllowed, saveUsers, type DemoUser, type PermissionMap } from './lib/demo-auth'
-import { addOrgTeam, changeServerPassword, deleteServerUser, getOrgTree, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout, type OrgDeptNode } from './lib/server-auth'
+import { addAccountFieldRole, addAccountFieldTeam, changeServerPassword, deleteServerUser, getAccountFields, getOrgTree, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout, type AccountFields, type OrgDeptNode } from './lib/server-auth'
 import { fetchTodos } from './lib/platform-api'
 import './styles.css'
 
@@ -126,7 +127,7 @@ function Layout() {
           {apps.filter(app => app.department === department && isAllowed(permissions, role, app)).map(app => <NavLink key={app.id} to={`/workspace/apps/${app.id}`} className={({ isActive }) => `app-nav ${isActive ? 'active' : ''}`} data-label={app.name}><i>{app.shortName.slice(0, 1)}</i><span className="app-label">{app.name}</span></NavLink>)}
         </div>)}
       </div>
-      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="user" /><span className="nav-label">个人账号</span></Link><Link to="/admin/org-chart" className="nav-item" data-label="组织架构"><Icon name="org" /><span className="nav-label">组织架构</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="users" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="岗位与权限"><Icon name="user-check" /><span className="nav-label">岗位与权限</span></Link><Link to="/admin/api-services" className="nav-item" data-label="服务与授权"><Icon name="key" /><span className="nav-label">服务与授权</span></Link><Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="sliders" /><span className="nav-label">接入设置</span></Link></>}<p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
+      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="user" /><span className="nav-label">个人账号</span></Link><Link to="/admin/org-chart" className="nav-item" data-label="组织架构"><Icon name="org" /><span className="nav-label">组织架构</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="users" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/account-fields" className="nav-item" data-label="账号字段"><Icon name="layers" /><span className="nav-label">账号字段</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="岗位与权限"><Icon name="user-check" /><span className="nav-label">岗位与权限</span></Link><Link to="/admin/api-services" className="nav-item" data-label="服务与授权"><Icon name="key" /><span className="nav-label">服务与授权</span></Link><Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="sliders" /><span className="nav-label">接入设置</span></Link></>}<p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
     </aside>
     <button className="sidebar-backdrop" type="button" aria-label="关闭导航" tabIndex={sidebarOpen ? 0 : -1} onClick={() => setSidebarOpen(false)} />
     <main className="main-content">
@@ -154,6 +155,7 @@ function Layout() {
         <Route path="/admin/permissions" element={<PermissionAdminPage currentUser={session} />} />
         <Route path="/admin/app-permissions" element={<AppPermissionAdmin currentUser={session} />} />
         <Route path="/admin/org-chart" element={<OrgChartPage />} />
+        <Route path="/admin/account-fields" element={<AccountFieldsPage />} />
         <Route path="/admin/api-integrations" element={<ApiIntegrationPage currentUser={session} mode="services" />} />
         <Route path="/admin/api-services" element={<ApiIntegrationPage currentUser={session} mode="services" />} />
         <Route path="/admin/api-grants" element={<ApiIntegrationPage currentUser={session} mode="grants" />} />
@@ -296,11 +298,12 @@ function PersonalAccountPage({ currentUser }: { currentUser: DemoUser }) {
 function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const [users, setUsers] = useState<any[]>([])
   const [orgDepts, setOrgDepts] = useState<OrgDeptNode[]>([])
+  const [accountFields, setAccountFields] = useState<AccountFields | null>(null)
   const [notice, setNotice] = useState('')
   const [draft, setDraft] = useState<any>(null)
   const empty = { username: '', displayName: '', role: 'salesperson', password: '', department: '', teamName: '', isAdmin: false, disabled: false, departmentHead: false, addingRole: false, addingTeam: false, newTeam: '', prevRole: '' }
   const refresh = async () => { try { setUsers(await getServerUsers()) } catch { setNotice('无法读取账号列表，请重新登录后再试。') } }
-  const refreshOrg = async () => { try { setOrgDepts(await getOrgTree()) } catch { /* 部门下拉不可用时仍可创建账号 */ } }
+  const refreshOrg = async () => { try { const [d, f] = await Promise.all([getOrgTree(), getAccountFields().catch(() => null)]); setOrgDepts(d); setAccountFields(f) } catch { /* 下拉不可用时仍可创建账号 */ } }
   useEffect(() => { void refresh(); void refreshOrg() }, [])
   const save = async (event: FormEvent) => {
     event.preventDefault()
@@ -320,7 +323,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const addTeam = async () => {
     const name = (draft.newTeam ?? '').trim()
     if (!name) { setNotice('请输入小组名称。'); return }
-    try { await addOrgTeam(draft.department, name); await refreshOrg(); setDraft({ ...draft, teamName: name, addingTeam: false, newTeam: '' }) }
+    try { await addAccountFieldTeam(draft.department, name); await refreshOrg(); setDraft({ ...draft, teamName: name, addingTeam: false, newTeam: '' }) }
     catch (error) { setNotice(error instanceof Error ? error.message : '新增小组失败。') }
   }
   const toggleDisabled = async (user: any) => {
@@ -347,13 +350,13 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
   const deptOf = (user: any) => user.department || ROLE_DEPT[roles[user.role as Role]?.label ?? user.role] || '其他'
   // 部门主管 = 该部门最高岗位（岗位与部门联动）
-  const HEAD_ROLE: Record<string, string> = {
+  const DEFAULT_HEAD_ROLE: Record<string, string> = {
     '总经理办公室': 'general_manager', '人力总经办': 'hr_director',
     '销售部': 'sales_manager', '采购部': 'procurement_manager',
     '销售支持组': '销售支持组组长', '市场运营组': '市场运营组组长',
     '船务部': 'shipping_manager', '财务部': 'finance_manager',
   }
-  const headRoleOf = (department: string) => HEAD_ROLE[department]
+  const headRoleOf = (department: string) => accountFields?.headRoles?.[department] || DEFAULT_HEAD_ROLE[department]
   const isHeadRole = (department: string, role: string) => Boolean(department && headRoleOf(department) === role)
   const byDept = new Map<string, any[]>()
   for (const u of users) { const d = deptOf(u); if (!byDept.has(d)) byDept.set(d, []); byDept.get(d)!.push(u) }
@@ -361,10 +364,11 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   // 岗位下拉：内置岗位 + 账号中已出现的自定义岗位 + “新增岗位…”
   const roleOptions = useMemo(() => {
     const builtin = Object.entries(roles).map(([id, item]) => ({ value: id, label: item.label }))
-    const custom = [...new Set(users.map(u => String(u.role || '').trim()).filter(r => r && !roles[r as Role]))].map(r => ({ value: r, label: r }))
+    const fromUsers = [...new Set(users.map(u => String(u.role || '').trim()).filter(r => r && !roles[r as Role]))]
+    const custom = [...new Set([...(accountFields?.customRoles ?? []), ...fromUsers])].map(r => ({ value: r, label: r }))
     return [...builtin, ...custom]
-  }, [users])
-  const teamsOf = (department: string) => orgDepts.find(d => d.department === department)?.teams.map(t => t.team) ?? []
+  }, [users, accountFields])
+  const teamsOf = (department: string) => accountFields?.teams?.[department] ?? orgDepts.find(d => d.department === department)?.teams.map(t => t.team) ?? []
   // 岗位下拉选项：内置 + 自定义 + 当前草稿岗位（保证“新增岗位”后下拉能正确回显，避免必填校验拦截提交）
   const allRoleOptions = useMemo(() => {
     const list = [...roleOptions]
@@ -435,7 +439,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
           <label>姓名<input required value={draft.displayName} onChange={e => setDraft({ ...draft, displayName: e.target.value })} placeholder="员工姓名" /></label>
           <label>部门<select required value={draft.department ?? ''} onChange={e => { const dept = e.target.value; setDraft({ ...draft, department: dept, teamName: '', addingTeam: false, newTeam: '', departmentHead: isHeadRole(dept, draft.role) ? (draft.id ? draft.departmentHead : true) : false }) }}>
             <option value="" disabled>请选择部门</option>
-            {orgDepts.map(d => <option key={d.department} value={d.department}>{d.department}</option>)}
+            {(accountFields?.departments ?? orgDepts.map(d => d.department)).map(d => <option key={d} value={d}>{d}</option>)}
           </select></label>
           {draft.department && <label>小组{draft.addingTeam ? (
             <span className="org-modal-inline-add"><input autoFocus required value={draft.newTeam ?? ''} onChange={e => setDraft({ ...draft, newTeam: e.target.value })} placeholder="小组名称，如 V6(新星组)" /><button type="button" onClick={() => void addTeam()}>添加</button><button type="button" onClick={() => setDraft({ ...draft, addingTeam: false, newTeam: '' })}>取消</button></span>

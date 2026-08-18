@@ -8,11 +8,12 @@ import { IntegrationsService, type ServiceInput } from './integrations.service.j
 import { AuthService } from './auth.service.js'
 import { SalesService } from './sales.service.js'
 import { OrgService, type OrgPersonInput } from './org.service.js'
+import { AccountFieldsService } from './account-fields.service.js'
 import type { TodoEventInput } from './types.js'
 
 @Controller()
 export class AppController {
-  constructor(private readonly identity: IdentityService, private readonly apps: AppsService, private readonly todos: TodosService, private readonly integrations: IntegrationsService, private readonly auth: AuthService, private readonly sales: SalesService, private readonly org: OrgService) {}
+  constructor(private readonly identity: IdentityService, private readonly apps: AppsService, private readonly todos: TodosService, private readonly integrations: IntegrationsService, private readonly auth: AuthService, private readonly sales: SalesService, private readonly org: OrgService, private readonly accountFields: AccountFieldsService) {}
 
   @Get('health') health() { return { status: 'ok', todoStorage: this.todos.storageMode() } }
 
@@ -196,6 +197,40 @@ export class AppController {
   async appApiServices(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('appId') appId: string) { const actor = await this.auth.actorFromRequest(cookie, authorization); if (!this.apps.list(actor.role).some(app => app.id === appId)) throw new ForbiddenException('当前岗位无权访问该应用。'); return this.integrations.authorizedForApp(appId) }
   @Post('apps/:appId/ai/chat/completions')
   async aiChatCompletion(@Param('appId') appId: string, @Headers('x-workbench-app-id') caller: string | undefined, @Headers('x-workbench-app-secret') headerSecret: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: unknown) { const appSecret = headerSecret || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined); if ((caller && caller !== appId) || !appSecret || !this.identity.verifyAppProxySecret(appId, appSecret)) throw new ForbiddenException('应用身份验证失败。'); const result = await this.integrations.proxyChatCompletion(appId, body).catch(error => { throw new BadRequestException(error.message) }); if (result.status < 200 || result.status >= 300) throw new HttpException(result.body as object, result.status); return result.body }
+  @Get('account-fields')
+  async getAccountFields(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.accountFields.get() }
+
+  @Put('account-fields')
+  async saveAccountFields(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: {
+    departments?: string[]; teams?: Record<string, string[]>; customRoles?: string[]; headRoles?: Record<string, string>;
+    renames?: { type: 'department' | 'team' | 'role'; from: string; to: string; department?: string }[];
+  }) {
+    await this.admin(cookie, authorization)
+    const current = await this.accountFields.get()
+    const departments = body?.departments ?? current.departments
+    const teams = body?.teams ?? current.teams
+    const customRoles = body?.customRoles ?? current.customRoles
+    const headRoles = body?.headRoles ?? current.headRoles
+    // 1) 重命名级联同步账号
+    for (const r of body?.renames ?? []) {
+      if (!r.from || !r.to || r.from === r.to) continue
+      if (r.type === 'department') await this.auth.renameDepartment(r.from, r.to)
+      else if (r.type === 'team') await this.auth.renameTeam(r.department ?? '', r.from, r.to)
+      else if (r.type === 'role') await this.auth.renameRole(r.from, r.to)
+    }
+    // 2) 删除保护：账号仍在使用中的选项不允许移除
+    for (const d of current.departments) if (!departments.includes(d)) { const n = await this.auth.countDepartmentUsers(d); if (n > 0) throw new BadRequestException(`仍有 ${n} 个账号属于部门「${d}」，无法删除该选项。`) }
+    for (const [dept, list] of Object.entries(current.teams)) for (const t of list) if (!(teams[dept] ?? []).includes(t)) { const n = await this.auth.countTeamUsers(dept, t); if (n > 0) throw new BadRequestException(`仍有 ${n} 个账号属于小组「${t}」，无法删除该选项。`) }
+    for (const r of current.customRoles) if (!customRoles.includes(r)) { const n = await this.auth.countRoleUsers(r); if (n > 0) throw new BadRequestException(`岗位「${r}」正在被 ${n} 个账号使用，无法删除。`) }
+    return this.accountFields.save({ departments, teams, customRoles, headRoles }).catch(error => { throw new BadRequestException(error.message) })
+  }
+
+  @Post('account-fields/teams')
+  async addAccountFieldTeam(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { department?: string; team?: string }) { await this.admin(cookie, authorization); return this.accountFields.addTeam(body?.department ?? '', body?.team ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+
+  @Post('account-fields/roles')
+  async addAccountFieldRole(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) { await this.admin(cookie, authorization); return this.accountFields.addRole(body?.name ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+
   @Get('org/tree')
   async orgTree(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Headers('x-picker-token') pickerToken?: string) { await this.requireOrgAccess(cookie, authorization, pickerToken); return this.org.tree() }
   @Get('org/persons')

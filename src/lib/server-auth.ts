@@ -61,3 +61,18 @@ export async function getOrgTree(): Promise<OrgDeptNode[]> {
 export async function addOrgTeam(department: string, team: string) {
   return request('org/teams', { method: 'POST', body: JSON.stringify({ department, team }) })
 }
+
+export type AccountFields = {
+  version: number
+  departments: string[]
+  teams: Record<string, string[]>
+  customRoles: string[]
+  headRoles: Record<string, string>
+}
+
+export async function getAccountFields(): Promise<AccountFields> { return request('account-fields') }
+export async function saveAccountFields(config: Partial<AccountFields> & { renames?: { type: 'department' | 'team' | 'role'; from: string; to: string; department?: string }[] }) {
+  return request('account-fields', { method: 'PUT', body: JSON.stringify(config) })
+}
+export async function addAccountFieldTeam(department: string, team: string) { return request('account-fields/teams', { method: 'POST', body: JSON.stringify({ department, team }) }) }
+export async function addAccountFieldRole(name: string) { return request('account-fields/roles', { method: 'POST', body: JSON.stringify({ name }) }) }
