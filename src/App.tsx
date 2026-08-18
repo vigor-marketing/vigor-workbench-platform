@@ -330,6 +330,25 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     try { await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, disabled: !user.disabled, department: user.department, teamName: user.teamName, departmentHead: user.departmentHead === true }); await refresh() }
     catch (error) { setNotice(error instanceof Error ? error.message : '操作失败。') }
   }
+  // 快捷标记：部门主管 / 管理员（保存后刷新，卡片徽标、部门主管、组织架构等同步更新）
+  const toggleHead = async (user: any) => {
+    const next = !(user.departmentHead === true)
+    const dept = user.department || deptOf(user)
+    if (next && !isHeadRole(dept, user.role)) { setNotice('该账号岗位不是本部门最高岗位，无法设为主管。'); return }
+    try {
+      await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin === true, disabled: user.disabled === true, department: dept, teamName: user.teamName, departmentHead: next })
+      setNotice(next ? `已将「${user.displayName}」设为本部门主管。` : `已取消「${user.displayName}」的部门主管。`)
+      await refresh()
+    } catch (error) { setNotice(error instanceof Error ? error.message : '操作失败。') }
+  }
+  const toggleAdmin = async (user: any) => {
+    const next = !(user.isAdmin === true)
+    try {
+      await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: next, disabled: user.disabled === true, department: user.department, teamName: user.teamName, departmentHead: user.departmentHead === true })
+      setNotice(next ? `已将「${user.displayName}」设为管理员。` : `已取消「${user.displayName}」的管理员权限。`)
+      await refresh()
+    } catch (error) { setNotice(error instanceof Error ? error.message : '操作失败。') }
+  }
   const remove = async (user: any) => {
     if (!window.confirm(`确定删除账号「${user.displayName}（${user.username}）」？此操作不可恢复。`)) return
     try { await deleteServerUser(user.id); setNotice('账号已删除。'); await refresh() }
@@ -392,6 +411,10 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         </div>
       </div>
       <div className="account-card-actions">
+        <div className="account-card-marks">
+          <button type="button" className={'mark-head' + (user.departmentHead ? ' active' : '')} disabled={!isHeadRole(user.department || deptOf(user), user.role)} title={isHeadRole(user.department || deptOf(user), user.role) ? (user.departmentHead ? '取消部门主管' : '设为本部门主管') : '仅本部门最高岗位可设为主管'} aria-label={user.departmentHead ? '取消部门主管' : '设为本部门主管'} onClick={() => void toggleHead(user)}><Icon name="crown" size={14} /></button>
+          <button type="button" className={'mark-admin' + (user.isAdmin ? ' active' : '')} title={user.isAdmin ? '取消管理员' : '设为管理员'} aria-label={user.isAdmin ? '取消管理员' : '设为管理员'} onClick={() => void toggleAdmin(user)}><Icon name="shield" size={14} /></button>
+        </div>
         <button type="button" onClick={() => setDraft({ ...user, password: '', department: user.department || deptOf(user), addingRole: false, addingTeam: false, newTeam: '', prevRole: user.role })}>编辑</button>
         <button type="button" onClick={() => void toggleDisabled(user)}>{user.disabled ? '启用' : '停用'}</button>
         <button type="button" className="danger" onClick={() => void remove(user)}>删除</button>

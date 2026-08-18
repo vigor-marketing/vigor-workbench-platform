@@ -627,6 +627,18 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-modal-actions .primary-button { border: 0; }
 .org-modal-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; color: #61798a; }
 .org-modal-actions button:not(.primary-button):hover { background: #f5f5f2; color: #1b2430; }
+.account-card-marks { display: flex; gap: 5px; }
+.account-card-marks button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid #e0e3df; border-radius: 7px; background: #fff; color: #8a97a1; }
+.account-card-marks button:hover:not(:disabled) { background: #f5f5f2; color: #1b2430; }
+.account-card-marks button:disabled { opacity: .35; cursor: not-allowed; }
+.account-card-marks button.mark-head.active { border-color: #e3b341; background: #fdf3dc; color: #92610c; }
+.account-card-marks button.mark-admin.active { border-color: #d92d20; background: #fff0ee; color: #a61b14; }
+.org-person-marks { display: inline-flex; gap: 4px; margin-left: 4px; vertical-align: 1px; }
+.org-person-marks em { font-style: normal; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 8px; }
+.org-person-marks em.head { background: #fdf3dc; color: #92610c; }
+.org-person-marks em.admin { background: #fff0ee; color: #a61b14; }
+.org-head-account { font-style: normal; font-size: 9px; font-weight: 700; background: #fdf3dc; color: #92610c; border-radius: 8px; padding: 1px 5px; margin-left: 3px; }
+
 /* 组织管理页 */
 .org-manage-section { max-width: 900px; }
 .org-manage-add { display: flex; gap: 10px; margin: 16px 0; }
