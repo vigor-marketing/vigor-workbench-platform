@@ -5,7 +5,7 @@ type OrgPerson = { id: string; department: string; team: string; role: string; n
 type OrgTeamNode = { team: string; persons: OrgPerson[] }
 type OrgDeptNode = { department: string; teams: OrgTeamNode[] }
 
-// 组织架构图：经典连线树（总经理办公室 → 部门 → 二级部门 → 人员），只读展示
+// 组织架构图：竖向布局（根节点 → 部门区块 → 团队分组 → 人员卡片），只读展示
 export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean } }) {
   const [tree, setTree] = useState<OrgDeptNode[]>([])
   const [error, setError] = useState('')
@@ -27,58 +27,46 @@ export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean
     return <section className="page"><div className="state-card"><Icon name="lock" size={28} /><h2>仅管理员可查看组织架构</h2></div></section>
   }
 
-  const renderPerson = (p: OrgPerson) => (
-    <li key={p.id}>
-      <div className="org-node-box">
-        <div className="org-card-node person">
-          <span className="org-person-avatar">{p.name.slice(0, 1)}</span>
-          <b>{p.name}</b>
-          <small>{p.englishName}</small>
-          <em>{p.role}</em>
-        </div>
-      </div>
-    </li>
-  )
-  const renderTeam = (t: OrgTeamNode, dept: string) => (
-    <li key={dept + '|' + t.team}>
-      <div className="org-node-box">
-        <div className="org-card-node team"><b>{t.team}</b><small>{t.persons.length} 人</small></div>
-      </div>
-      <ul>{t.persons.map(renderPerson)}</ul>
-    </li>
-  )
-  const renderDept = (d: OrgDeptNode) => {
-    const count = d.teams.reduce((m, t) => m + t.persons.length, 0)
-    const hasSubTeams = d.teams.length > 1 || (d.teams[0] && d.teams[0].team !== d.department)
-    return (
-      <li key={d.department}>
-        <div className="org-node-box">
-          <div className="org-card-node dept"><b>{d.department}</b><small>{count} 人</small></div>
-        </div>
-        {hasSubTeams ? <ul>{d.teams.map(t => renderTeam(t, d.department))}</ul> : <ul>{d.teams[0]?.persons.map(renderPerson) ?? []}</ul>}
-      </li>
-    )
-  }
-
   return <section className="page org-chart-page">
     <div className="page-heading">
       <div><h1>组织架构</h1><p>共 {total} 人 · {tree.length} 个部门 · 只读展示</p></div>
     </div>
     {error && <p className="org-chart-message" role="status">{error}</p>}
-    <div className="org-chart-canvas">
-      <ul className="org-tree">
-        <li>
-          <div className="org-node-box">
-            <div className="org-card-node root">
-              <b>总经理办公室</b>
-              <div className="org-root-leads">
-                {(leadership?.teams[0]?.persons ?? []).map(p => <span key={p.id}>{p.name} · {p.role.replace(/部门负责人\/管理岗\/?/, '')}</span>)}
+
+    <div className="org-chart-vertical">
+      <div className="org-root-card">
+        <div className="org-root-title"><span className="org-root-mark">总</span><b>总经理办公室</b></div>
+        <div className="org-root-leads">
+          {(leadership?.teams[0]?.persons ?? []).map(p => <span key={p.id}><i>{p.name.slice(0, 1)}</i>{p.name} · {p.role.replace(/部门负责人\/管理岗\/?/, '')}</span>)}
+        </div>
+      </div>
+
+      {departments.map(d => {
+        const count = d.teams.reduce((m, t) => m + t.persons.length, 0)
+        return <section className="org-dept-block" key={d.department}>
+          <header className="org-dept-block-head">
+            <span className="org-dept-mark">{d.department.slice(0, 1)}</span>
+            <h2>{d.department}</h2>
+            <small>{count} 人</small>
+          </header>
+          <div className="org-dept-block-body">
+            {d.teams.map(t => (
+              <div className="org-team-group" key={t.team}>
+                {d.teams.length > 1 && <div className="org-team-group-title">{t.team} · {t.persons.length} 人</div>}
+                <div className="org-person-chips">
+                  {t.persons.map(p => (
+                    <div className="org-person-chip" key={p.id}>
+                      <span className="org-person-avatar">{p.name.slice(0, 1)}</span>
+                      <div className="org-person-chip-main"><b>{p.name}</b><small>{p.englishName}{p.role ? ' · ' + p.role : ''}</small></div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
+            {d.teams.length === 0 && <div className="org-empty">暂无二级部门。</div>}
           </div>
-          <ul>{departments.map(renderDept)}</ul>
-        </li>
-      </ul>
+        </section>
+      })}
     </div>
   </section>
 }
