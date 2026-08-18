@@ -25,5 +25,4 @@
 - 前端 dist 全量替换 `/opt/vigor-workbench-pilot/app/dist`（备份 `dist.bak-orgmodal`），index.html 已指向新 hash 资源（index-MvWOYu2a.js / index-tAALn4kx.css）。无需重启 BFF/nginx。
 
 ## 备注
-- `admin` 账号的密码与 49 个种子账号（`Vigor@2026`）不同（初始 bootstrap 密码，未在文档中记录明文）；管理员登录用 `erica`（总经理，isAdmin，密码 `Vigor@2026`）。
-- 若后续要调整 admin 密码：通过 BFF `POST /api/auth/password`（个人账号页改密）或部署时重设 users.json hash。
+- `admin` 密码已于 031 重置为 `Vigor@2026`（与 49 个种子账号一致），可用 admin / Vigor@2026 直接登录。
