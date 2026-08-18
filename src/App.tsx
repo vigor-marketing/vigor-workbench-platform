@@ -407,8 +407,8 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         const list = byDept.get(dept) || []
         if (!list.length) return null
         // 销售部与采购部按小组分块展示；小组顺序按组织架构中的排序（销售 V1–V5，采购 一组/二组/质量组）
-        const subTeams = (dept === '销售部' || dept === '采购部') ? [...new Set(list.map(u => u.teamName).filter(Boolean))] : []
         const orgOrder = orgDepts.find(d => d.department === dept)?.teams.map(t => t.team) ?? []
+        const subTeams = (dept === '销售部' || dept === '采购部') ? [...new Set(list.map(u => u.teamName).filter(Boolean))].filter(t => orgOrder.includes(t)) : []
         subTeams.sort((a, b) => orgOrder.indexOf(a) - orgOrder.indexOf(b))
         const headFirst = (arr: any[]) => [...arr].sort((a, b) => Number(b.departmentHead === true) - Number(a.departmentHead === true))
         const accent = DEPT_COLORS[dept] || '#15202c'
@@ -416,12 +416,12 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         return <section className="account-dept" key={dept} style={{ borderTop: `3px solid ${accent}` }}>
           <header className="account-dept-head"><span className="account-dept-mark" style={{ background: accent }}>{dept.slice(0, 1)}</span><h2>{dept}</h2>{deptHeads.map(h => <span className="account-dept-head-chip" key={h.id}><i style={{ background: accent }}>{h.displayName.slice(0, 1)}</i>{h.displayName} · 主管</span>)}<small>{list.length} 个账号</small></header>
           <div className="account-dept-body">
-            {subTeams.length > 1 ? subTeams.map(team => (
+            {subTeams.length > 1 ? <>{subTeams.map(team => (
               <div className="account-team-group" key={team}>
                 <div className="account-team-title">{team}</div>
                 <div className="account-cards">{headFirst(list.filter(u => u.teamName === team)).map(renderCard)}</div>
               </div>
-            )) : <div className="account-cards">{headFirst(list).map(renderCard)}</div>}
+            ))}{(() => { const rest = headFirst(list.filter(u => !subTeams.includes(u.teamName))); return rest.length ? <div className="account-team-group"><div className="account-team-title">未分组</div><div className="account-cards">{rest.map(renderCard)}</div></div> : null })()}</> : <div className="account-cards">{headFirst(list).map(renderCard)}</div>}
           </div>
         </section>
       })}
