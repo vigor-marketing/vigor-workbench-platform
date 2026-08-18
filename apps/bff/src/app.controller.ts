@@ -223,7 +223,21 @@ export class AppController {
     for (const d of current.departments) if (!departments.includes(d)) { const n = await this.auth.countDepartmentUsers(d); if (n > 0) throw new BadRequestException(`仍有 ${n} 个账号属于部门「${d}」，无法删除该选项。`) }
     for (const [dept, list] of Object.entries(current.teams)) for (const t of list) if (!(teams[dept] ?? []).includes(t)) { const n = await this.auth.countTeamUsers(dept, t); if (n > 0) throw new BadRequestException(`仍有 ${n} 个账号属于小组「${t}」，无法删除该选项。`) }
     for (const r of current.customRoles) if (!customRoles.includes(r)) { const n = await this.auth.countRoleUsers(r); if (n > 0) throw new BadRequestException(`岗位「${r}」正在被 ${n} 个账号使用，无法删除。`) }
-    return this.accountFields.save({ departments, teams, customRoles, headRoles, roleLabels: body?.roleLabels, disabledRoles: body?.disabledRoles }).catch(error => { throw new BadRequestException(error.message) })
+    const saved = await this.accountFields.save({ departments, teams, customRoles, headRoles, roleLabels: body?.roleLabels, disabledRoles: body?.disabledRoles }).catch(error => { throw new BadRequestException(error.message) })
+    // 3) 同步组织架构数据（org.json）：先重命名、再新增、后删除（删除仅当组织内无人员，避免误删人员）
+    try {
+      for (const r of body?.renames ?? []) if (r.type === 'department') await this.org.renameDepartment(r.from, r.to).catch(() => {})
+      for (const r of body?.renames ?? []) if (r.type === 'team') await this.org.renameTeam(r.department ?? '', r.from, r.to).catch(() => {})
+      for (const d of departments) if (!current.departments.includes(d)) await this.org.addDepartment(d).catch(() => {})
+      for (const dept of departments) {
+        const nextTeams = teams[dept] ?? []
+        const curTeams = current.teams?.[dept] ?? []
+        for (const t of nextTeams) if (!curTeams.includes(t)) await this.org.addTeam(dept, t).catch(() => {})
+      }
+      for (const d of current.departments) if (!departments.includes(d)) await this.org.deleteDepartment(d, false).catch(() => {})
+      for (const [dept, list] of Object.entries(current.teams ?? {})) for (const t of list) if (!(teams[dept] ?? []).includes(t)) await this.org.deleteTeam(dept, t, false).catch(() => {})
+    } catch { /* 组织同步失败不影响账号字段保存 */ }
+    return saved
   }
 
   @Post('account-fields/teams')
