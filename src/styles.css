@@ -594,6 +594,40 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-modal-checks { display: flex; gap: 18px; padding: 4px 0; }
 .org-modal-checks label { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #424c52; }
 .org-modal-checks input { accent-color: #d92d20; }
+/* 账号弹窗（新建/编辑小框） */
+.org-modal-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(16, 22, 28, .46);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.org-modal {
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(10, 16, 22, .35);
+  padding: 20px 22px 22px;
+  animation: org-modal-pop .18s ease-out;
+}
+@keyframes org-modal-pop { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+.org-modal h3 { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid #e8eae5; font-size: 16px; color: #1b2430; }
+.org-modal-fields { display: grid; gap: 13px; }
+.org-modal-fields label { display: grid; gap: 6px; color: #3d474e; font-size: 12px; font-weight: 700; }
+.org-modal-fields input {
+  min-width: 0; padding: 10px 11px; border: 1px solid #cfd5d1; border-radius: 8px;
+  background: #fff; color: #1b2430; font: inherit; font-size: 13px;
+}
+.org-modal-fields input:focus { outline: 2px solid rgba(217, 45, 32, .25); border-color: #d92d20; }
+.org-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #e8eae5; }
+.org-modal-actions button { min-height: 36px; padding: 0 16px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+.org-modal-actions .primary-button { border: 0; }
+.org-modal-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; color: #61798a; }
+.org-modal-actions button:not(.primary-button):hover { background: #f5f5f2; color: #1b2430; }
+
 
 /* 服务与授权：页内标签切换（服务库 / 授权） */
 .api-tabs { display: flex; gap: 2px; margin-bottom: 18px; border-bottom: 1px solid #e6e9e5; }
