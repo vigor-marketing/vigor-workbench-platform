@@ -1,21 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from './Icon'
+import { DEPT_COLORS } from '../data/workbench'
 
 type OrgPerson = { id: string; department: string; team: string; role: string; name: string; englishName: string }
 type OrgTeamNode = { team: string; persons: OrgPerson[] }
 type OrgDeptNode = { department: string; teams: OrgTeamNode[] }
 
-// 各部门强调色
-const DEPT_COLORS: Record<string, string> = {
-  '总经理办公室': '#b45309',
-  '人力总经办': '#0d9488',
-  '销售部': '#2563eb',
-  '采购部': '#16a34a',
-  '销售支持组': '#7c3aed',
-  '市场运营组': '#ea580c',
-  '船务部': '#0891b2',
-  '财务部': '#e11d48',
-}
 
 // 组织架构图（竖向）：根节点=总经理 → 部门区块（负责人头像 + 强调色）→ 团队分组 → 人员
 export function OrgChartPage() {

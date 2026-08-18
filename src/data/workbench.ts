@@ -13,3 +13,15 @@ export const apps: AppDefinition[] = [
 export const initialTodos: Todo[] = [{id:'todo-01',title:'确认华东项目的技术支持安排',source:'跨部门计划',due:'今天 10:30',priority:'high'},{id:'todo-02',title:'审批客户报价 V2.1',source:'销售审批',due:'今天 14:00',priority:'high'},{id:'todo-03',title:'完成本周 AI 陪练复盘',source:'AI 销售陪练',due:'明天',priority:'medium'},{id:'todo-04',title:'核对 7 月销售提成数据',source:'销售提成',due:'8 月 12 日',priority:'normal'}]
 export function appUrl(app: AppDefinition): string | undefined { return app.urlEnv ? import.meta.env[app.urlEnv]?.trim() || undefined : undefined }
 export function canAccess(role: Role, app: AppDefinition): boolean { return app.access.includes(role) }
+
+// 各部门强调色（组织架构图 / 账号与权限 共用，保证两页颜色一致）
+export const DEPT_COLORS: Record<string, string> = {
+  '总经理办公室': '#b45309',
+  '人力总经办': '#0d9488',
+  '销售部': '#2563eb',
+  '采购部': '#16a34a',
+  '销售支持组': '#7c3aed',
+  '市场运营组': '#ea580c',
+  '船务部': '#0891b2',
+  '财务部': '#e11d48',
+}

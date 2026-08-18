@@ -5,7 +5,7 @@ import { Icon } from './components/Icon'
 import { SalesManagementPage } from './components/SalesManagementPage'
 import { OrgPickerPage } from './components/OrgPickerPage'
 import { OrgChartPage } from './components/OrgChartPage'
-import { appUrl, apps, departments, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
+import { appUrl, apps, departments, DEPT_COLORS, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
 import { getUsers, isAllowed, saveUsers, type DemoUser, type PermissionMap } from './lib/demo-auth'
 import { changeServerPassword, deleteServerUser, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout } from './lib/server-auth'
 import { fetchTodos } from './lib/platform-api'
@@ -355,8 +355,9 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         const list = byDept.get(dept) || []
         if (!list.length) return null
         const salesTeams = dept === '销售部' ? [...new Set(list.map(u => u.teamName).filter(Boolean))] : []
-        return <section className="account-dept" key={dept}>
-          <header className="account-dept-head"><span className="account-dept-mark">{dept.slice(0, 1)}</span><h2>{dept}</h2><small>{list.length} 个账号</small></header>
+        const accent = DEPT_COLORS[dept] || '#15202c'
+        return <section className="account-dept" key={dept} style={{ borderTop: `3px solid ${accent}` }}>
+          <header className="account-dept-head"><span className="account-dept-mark" style={{ background: accent }}>{dept.slice(0, 1)}</span><h2>{dept}</h2><small>{list.length} 个账号</small></header>
           <div className="account-dept-body">
             {salesTeams.length > 1 ? salesTeams.map(team => (
               <div className="account-team-group" key={team}>
