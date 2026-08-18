@@ -420,7 +420,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
             <option value="" disabled>请选择部门</option>
             {orgDepts.map(d => <option key={d.department} value={d.department}>{d.department}</option>)}
           </select></label>
-          {draft.department && <label>销售小组{draft.addingTeam ? (
+          {draft.department && <label>小组{draft.addingTeam ? (
             <span className="org-modal-inline-add"><input autoFocus required value={draft.newTeam ?? ''} onChange={e => setDraft({ ...draft, newTeam: e.target.value })} placeholder="小组名称，如 V6(新星组)" /><button type="button" onClick={() => void addTeam()}>添加</button><button type="button" onClick={() => setDraft({ ...draft, addingTeam: false, newTeam: '' })}>取消</button></span>
           ) : (
             <select value={draft.teamName ?? ''} onChange={e => {
