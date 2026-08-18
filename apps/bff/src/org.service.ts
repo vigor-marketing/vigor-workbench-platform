@@ -106,6 +106,15 @@ function flatToNested(flat: PublicOrgPerson[]): OrgDepartment[] {
   return order.map(name => { const d = map.get(name)!; return { name, teams: d.teamOrder.map(t => ({ name: t, persons: d.teams.get(t)! })) } })
 }
 
+// 全平台统一的部门展示顺序（组织架构图、选择器、外部 API 均按此排序）
+const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
+const deptRank = (name: string) => { const i = DEPT_ORDER.indexOf(name); return i === -1 ? DEPT_ORDER.length : i }
+const teamRank = (dept: string, team: string) => {
+  if (dept === '销售部') { const m = team.match(/V(\d+)/); if (m) return Number(m[1]) }
+  if (dept === '采购部') { if (team.includes('质量')) return 1; if (team.includes('一单元')) return 2; if (team.includes('二单元')) return 3 }
+  return 99
+}
+
 @Injectable()
 export class OrgService implements OnModuleInit {
   private data: OrgData = { version: 2, departments: [] }
@@ -158,12 +167,14 @@ export class OrgService implements OnModuleInit {
 
   // ---- 读取 ----
   tree(): OrgDepartmentNode[] {
-    return this.data.departments.map(d => ({ department: d.name, teams: d.teams.map(t => ({ team: t.name, persons: t.persons.map(p => this.toPublic(p, d, t)) })) }))
+    return [...this.data.departments]
+      .sort((a, b) => deptRank(a.name) - deptRank(b.name))
+      .map(d => ({ department: d.name, teams: [...d.teams].sort((x, y) => teamRank(d.name, x.name) - teamRank(d.name, y.name)).map(t => ({ team: t.name, persons: t.persons.map(p => this.toPublic(p, d, t)) })) }))
   }
   list(): PublicOrgPerson[] {
-    return this.data.departments.flatMap(d => d.teams.flatMap(t => t.persons.map(p => this.toPublic(p, d, t))))
+    return [...this.data.departments].sort((a, b) => deptRank(a.name) - deptRank(b.name)).flatMap(d => d.teams.flatMap(t => t.persons.map(p => this.toPublic(p, d, t))))
   }
-  departments(): string[] { return this.data.departments.map(d => d.name) }
+  departments(): string[] { return [...this.data.departments].sort((a, b) => deptRank(a.name) - deptRank(b.name)).map(d => d.name) }
 
   // ---- 部门 CRUD ----
   async addDepartment(name: string) { const n = name?.trim(); if (!n) throw new Error('部门名称必填。'); if (this.data.departments.some(d => d.name === n)) throw new Error('部门已存在。'); this.data.departments.push({ name: n, teams: [] }); await this.persist(); return { ok: true } }
