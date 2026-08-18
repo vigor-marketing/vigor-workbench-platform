@@ -543,47 +543,34 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 .org-btn-plain { height: 32px; padding: 0 16px; border: 1px solid #d8d9d4; border-radius: 7px; background: #fff; color: #61798a; font-size: 13px; }
 
-/* 组织架构管理页（小模块卡片，逐级打开） */
+/* 组织架构图（经典连线树：总经理办公室 → 部门 → 二级部门 → 人员） */
 .org-chart-message { margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; background: #fff0ee; color: #a61b14; font-size: 13px; }
-.org-breadcrumb { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; color: #8a97a1; font-size: 13px; }
-.org-breadcrumb button { border: 0; background: none; color: #2e566e; font-size: 13px; padding: 0; cursor: pointer; }
-.org-breadcrumb button:hover { color: #b42318; }
-.org-breadcrumb b { color: #1b2430; font-weight: 600; }
-.module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 13px; }
-.module-card { position: relative; border: 1px solid #e4e6e1; border-radius: 12px; background: #fff; overflow: hidden; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
-.module-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(20,24,30,.08); border-color: #cdd3cd; }
-.module-card.sub { background: #fafbf9; }
-.module-card-main { display: grid; gap: 7px; padding: 18px 16px 14px; cursor: pointer; }
-.module-card-main:hover { background: #f8f9f6; }
-.module-name { font-size: 15px; font-weight: 700; color: #222b31; }
-.module-card.sub .module-name { font-size: 13.5px; font-weight: 600; }
-.module-count { color: #8a97a1; font: 11px 'DM Mono', monospace; }
-.module-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; opacity: 0; transition: opacity .12s ease; }
-.module-card:hover .module-actions { opacity: 1; }
-.module-actions button { border: 0; background: transparent; color: #6a757b; font-size: 12px; padding: 3px 7px; border-radius: 5px; }
-.module-actions button:hover { background: #e9ece8; color: #1b2430; }
-.module-actions button.danger:hover { background: #fff0ee; color: #a61b14; }
-.org-people-card { background: #fff; border: 1px solid #e4e6e1; border-radius: 10px; padding: 8px; }
-.org-person { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 7px; font-size: 13px; }
-.org-person:hover { background: #f6f7f4; }
-.org-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #c3cacd; }
-.org-person-name { color: #222b31; font-weight: 600; }
-.org-person-meta { color: #8a97a1; font-size: 12px; }
-.org-person-actions { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity .12s ease; }
-.org-person:hover .org-person-actions { opacity: 1; }
-.org-person-actions button { border: 0; background: transparent; color: #6a757b; font-size: 12px; padding: 3px 8px; border-radius: 5px; }
-.org-person-actions button:hover { background: #e9ece8; color: #1b2430; }
-.org-person-actions button.danger:hover { background: #fff0ee; color: #a61b14; }
-.org-empty { padding: 20px; color: #8a97a1; font-size: 13px; }
-.org-modal-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(10,12,14,.46); padding: 20px; }
-.org-modal { width: min(440px, 100%); background: #fff; border-radius: 14px; padding: 22px 24px; box-shadow: 0 18px 50px rgba(0,0,0,.22); }
-.org-modal h3 { margin: 0 0 16px; font-size: 17px; }
-.org-modal-fields { display: grid; gap: 12px; }
-.org-modal-fields label { display: grid; gap: 5px; font-size: 12px; color: #61798a; }
-.org-modal-fields input, .org-modal-fields select { height: 40px; padding: 0 12px; border: 1px solid #d8d9d4; border-radius: 8px; font: 14px 'Noto Sans SC', sans-serif; color: #1b2430; background: #fff; }
-.org-modal-fields input:focus, .org-modal-fields select:focus { outline: 2px solid #d92d20; outline-offset: -1px; }
-.org-modal-actions { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
-.org-modal-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; border-radius: 8px; height: 40px; padding: 0 18px; color: #61798a; }
+.org-chart-canvas { overflow-x: auto; overflow-y: hidden; padding: 26px 16px 46px; }
+.org-tree, .org-tree ul { margin: 0; padding: 0; list-style: none; }
+.org-tree { display: table; margin: 0 auto; min-width: max-content; }
+.org-tree ul { display: flex; justify-content: center; padding: 30px 0 0; position: relative; }
+.org-tree li { display: flex; flex-direction: column; align-items: center; position: relative; padding: 30px 7px 0; }
+.org-tree li::before, .org-tree li::after { content: ''; position: absolute; top: 0; right: 50%; width: 50%; height: 30px; border-top: 2px solid #c9d3d8; }
+.org-tree li::after { right: auto; left: 50%; border-left: 2px solid #c9d3d8; }
+.org-tree li:only-child::before, .org-tree li:only-child::after { display: none; }
+.org-tree li:only-child { padding-top: 0; }
+.org-tree li:first-child::before, .org-tree li:last-child::after { border: 0 none; }
+.org-tree li:last-child::before { border-right: 2px solid #c9d3d8; border-radius: 0 8px 0 0; }
+.org-tree li:first-child::after { border-radius: 8px 0 0 0; }
+.org-tree ul ul::before { content: ''; position: absolute; top: 0; left: 50%; width: 0; height: 30px; border-left: 2px solid #c9d3d8; }
+.org-node-box { position: relative; z-index: 1; }
+.org-card-node { display: grid; justify-items: center; gap: 3px; background: #fff; border: 1px solid #e3e6e1; border-radius: 10px; box-shadow: 0 2px 8px rgba(20,24,30,.06); padding: 12px 16px; min-width: 116px; text-align: center; }
+.org-card-node b { color: #222b31; font-size: 13px; }
+.org-card-node small { color: #8a97a1; font: 11px 'DM Mono', monospace; }
+.org-card-node.root { background: #15202c; border-color: #15202c; color: #fff; min-width: 220px; padding: 16px 22px; box-shadow: 0 8px 20px rgba(20,24,30,.18); }
+.org-card-node.root b { color: #fff; font-size: 15px; }
+.org-root-leads { display: grid; gap: 4px; margin-top: 9px; padding-top: 10px; border-top: 1px solid #33404c; color: #c4ced6; font-size: 12px; }
+.org-card-node.dept { border-top: 3px solid #d92d20; min-width: 130px; }
+.org-card-node.team { background: #fafbf9; min-width: 122px; }
+.org-card-node.person { min-width: 104px; padding: 10px 12px; gap: 2px; }
+.org-person-avatar { width: 34px; height: 34px; border-radius: 50%; background: #e8ebe7; color: #3a464d; display: grid; place-items: center; font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.org-card-node.person em { font-style: normal; color: #8a97a1; font-size: 10.5px; }
+.org-card-node.person b { font-size: 12px; }
 
 /* 账号与权限：紧凑账号卡片 + 弹窗编辑 */
 .page-heading-actions { display: flex; align-items: center; gap: 12px; }
