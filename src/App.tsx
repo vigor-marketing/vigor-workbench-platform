@@ -307,34 +307,68 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     catch (error) { setNotice(error instanceof Error ? error.message : '删除失败。') }
   }
   if (!currentUser.isAdmin) return <section className="page"><div className="state-card"><h2>无管理权限</h2><p>仅管理员可修改账号与岗位。</p></div></section>
+
+  // 岗位 → 部门
+  const ROLE_DEPT: Record<string, string> = {
+    '总经理': '总经理办公室', '分管销售副总': '总经理办公室', '分管财务副总': '总经理办公室',
+    '人力总监': '人力总经办', '行政专员': '人力总经办',
+    '销售经理': '销售部', '销售组长': '销售部', '销售员': '销售部', '项目跟进员': '销售部',
+    '采购经理': '采购部', '采购组长': '采购部', '采购员': '采购部', '质量组': '采购部',
+    '销售支持组': '销售支持组', '市场组': '市场运营组',
+    '船务经理': '船务部', '船务操作员': '船务部', '财务经理': '财务部', '会计': '财务部',
+  }
+  const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
+  const deptOf = (user: any) => ROLE_DEPT[roles[user.role as Role]?.label ?? user.role] || '其他'
+  const byDept = new Map<string, any[]>()
+  for (const u of users) { const d = deptOf(u); if (!byDept.has(d)) byDept.set(d, []); byDept.get(d)!.push(u) }
+
+  const renderCard = (user: any) => {
+    const roleLabel = roles[user.role as Role]?.label ?? user.role
+    return <div className={'account-card' + (draft?.id === user.id ? ' editing' : '')} key={user.id}>
+      <span className="account-directory-mark">{user.displayName.slice(0, 1)}</span>
+      <div className="account-card-main">
+        <b>{user.displayName}</b>
+        <small>@{user.username}</small>
+        <div className="account-card-badges">
+          <em className="role">{roleLabel}</em>
+          {user.isAdmin && <em className="admin">管理员</em>}
+          <em className={user.disabled ? 'off' : 'on'}>{user.disabled ? '已停用' : '已启用'}</em>
+        </div>
+      </div>
+      <div className="account-card-actions">
+        <button type="button" onClick={() => setDraft({ ...user, password: '' })}>编辑</button>
+        <button type="button" onClick={() => void toggleDisabled(user)}>{user.disabled ? '启用' : '停用'}</button>
+        <button type="button" className="danger" onClick={() => void remove(user)}>删除</button>
+      </div>
+    </div>
+  }
+
   return <section className="page account-admin-page">
     <div className="page-heading">
-      <div><h1>账号与权限</h1><p>创建、编辑、停用或删除工作台账号。岗位决定数据范围；应用入口权限请在“应用岗位权限”中配置。</p></div>
+      <div><h1>账号与权限</h1><p>按部门查看与管理账号；岗位决定数据范围，应用入口权限请在“岗位与权限”中配置。</p></div>
       <div className="page-heading-actions"><button type="button" className="primary-button" onClick={() => setDraft(empty)}>新增账号 <Icon name="arrow" /></button><button type="button" className="text-action" onClick={() => void refresh()}>刷新列表</button></div>
     </div>
     {notice && <p className="account-feedback" role="status">{notice}</p>}
-    <div className="account-cards">
-      {users.map(user => {
-        const roleLabel = roles[user.role as Role]?.label ?? user.role
-        return <div className={'account-card' + (draft?.id === user.id ? ' editing' : '')} key={user.id}>
-          <span className="account-directory-mark">{user.displayName.slice(0, 1)}</span>
-          <div className="account-card-main">
-            <b>{user.displayName}</b>
-            <small>@{user.username}</small>
-            <div className="account-card-badges">
-              <em className="role">{roleLabel}</em>
-              {user.isAdmin && <em className="admin">管理员</em>}
-              <em className={user.disabled ? 'off' : 'on'}>{user.disabled ? '已停用' : '已启用'}</em>
-            </div>
+
+    <div className="account-depts">
+      {DEPT_ORDER.concat(['其他']).map(dept => {
+        const list = byDept.get(dept) || []
+        if (!list.length) return null
+        const salesTeams = dept === '销售部' ? [...new Set(list.map(u => u.teamName).filter(Boolean))] : []
+        return <section className="account-dept" key={dept}>
+          <header className="account-dept-head"><span className="account-dept-mark">{dept.slice(0, 1)}</span><h2>{dept}</h2><small>{list.length} 个账号</small></header>
+          <div className="account-dept-body">
+            {salesTeams.length > 1 ? salesTeams.map(team => (
+              <div className="account-team-group" key={team}>
+                <div className="account-team-title">{team}</div>
+                <div className="account-cards">{list.filter(u => u.teamName === team).map(renderCard)}</div>
+              </div>
+            )) : <div className="account-cards">{list.map(renderCard)}</div>}
           </div>
-          <div className="account-card-actions">
-            <button type="button" onClick={() => setDraft({ ...user, password: '' })}>编辑</button>
-            <button type="button" onClick={() => void toggleDisabled(user)}>{user.disabled ? '启用' : '停用'}</button>
-            <button type="button" className="danger" onClick={() => void remove(user)}>删除</button>
-          </div>
-        </div>
+        </section>
       })}
     </div>
+
     {draft && <div className="org-modal-backdrop" onClick={() => setDraft(null)}>
       <form className="org-modal" onClick={e => e.stopPropagation()} onSubmit={save}>
         <h3>{draft.id ? '编辑账号' : '新建账号'}</h3>
