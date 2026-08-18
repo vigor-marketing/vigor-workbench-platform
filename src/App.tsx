@@ -127,7 +127,7 @@ function Layout() {
           {apps.filter(app => app.department === department && isAllowed(permissions, role, app)).map(app => <NavLink key={app.id} to={`/workspace/apps/${app.id}`} className={({ isActive }) => `app-nav ${isActive ? 'active' : ''}`} data-label={app.name}><i>{app.shortName.slice(0, 1)}</i><span className="app-label">{app.name}</span></NavLink>)}
         </div>)}
       </div>
-      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="user" /><span className="nav-label">个人账号</span></Link><Link to="/admin/org-chart" className="nav-item" data-label="组织架构"><Icon name="org" /><span className="nav-label">组织架构</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="users" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/account-fields" className="nav-item" data-label="账号字段"><Icon name="layers" /><span className="nav-label">账号字段</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="岗位与权限"><Icon name="user-check" /><span className="nav-label">岗位与权限</span></Link><Link to="/admin/api-services" className="nav-item" data-label="服务与授权"><Icon name="key" /><span className="nav-label">服务与授权</span></Link><Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="sliders" /><span className="nav-label">接入设置</span></Link></>}<p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
+      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="user" /><span className="nav-label">个人账号</span></Link><Link to="/admin/org-chart" className="nav-item" data-label="组织架构"><Icon name="org" /><span className="nav-label">组织架构</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="users" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="岗位与权限"><Icon name="user-check" /><span className="nav-label">岗位与权限</span></Link><Link to="/admin/api-services" className="nav-item" data-label="服务与授权"><Icon name="key" /><span className="nav-label">服务与授权</span></Link><Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="sliders" /><span className="nav-label">接入设置</span></Link></>}<p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
     </aside>
     <button className="sidebar-backdrop" type="button" aria-label="关闭导航" tabIndex={sidebarOpen ? 0 : -1} onClick={() => setSidebarOpen(false)} />
     <main className="main-content">
@@ -155,7 +155,6 @@ function Layout() {
         <Route path="/admin/permissions" element={<PermissionAdminPage currentUser={session} />} />
         <Route path="/admin/app-permissions" element={<AppPermissionAdmin currentUser={session} />} />
         <Route path="/admin/org-chart" element={<OrgChartPage />} />
-        <Route path="/admin/account-fields" element={<AccountFieldsPage />} />
         <Route path="/admin/api-integrations" element={<ApiIntegrationPage currentUser={session} mode="services" />} />
         <Route path="/admin/api-services" element={<ApiIntegrationPage currentUser={session} mode="services" />} />
         <Route path="/admin/api-grants" element={<ApiIntegrationPage currentUser={session} mode="grants" />} />
@@ -299,6 +298,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const [users, setUsers] = useState<any[]>([])
   const [orgDepts, setOrgDepts] = useState<OrgDeptNode[]>([])
   const [accountFields, setAccountFields] = useState<AccountFields | null>(null)
+  const [adminView, setAdminView] = useState<'accounts' | 'fields'>('accounts')
   const [notice, setNotice] = useState('')
   const [draft, setDraft] = useState<any>(null)
   const empty = { username: '', displayName: '', role: 'salesperson', password: '', department: '', teamName: '', isAdmin: false, disabled: false, departmentHead: false, addingRole: false, addingTeam: false, newTeam: '', prevRole: '' }
@@ -404,6 +404,12 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
       <div><h1>账号与权限</h1><p>按部门查看与管理账号；岗位决定数据范围，应用入口权限请在“岗位与权限”中配置。</p></div>
       <div className="page-heading-actions"><button type="button" className="primary-button" onClick={() => setDraft({ ...empty, password: 'Vigor@2026' })}>新增账号 <Icon name="arrow" /></button><button type="button" className="text-action" onClick={() => { void refresh(); void refreshOrg() }}>刷新列表</button></div>
     </div>
+    <div className="api-tabs">
+      <button type="button" className={adminView === 'accounts' ? 'active' : ''} onClick={() => setAdminView('accounts')}>账号列表</button>
+      <button type="button" className={adminView === 'fields' ? 'active' : ''} onClick={() => setAdminView('fields')}>字段管理</button>
+    </div>
+
+    <div style={{ display: adminView === 'accounts' ? undefined : 'none' }}>
     {notice && <p className="account-feedback" role="status">{notice}</p>}
 
     <div className="account-depts">
@@ -429,6 +435,12 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
           </div>
         </section>
       })}
+    </div>
+
+    </div>
+
+    <div style={{ display: adminView === 'fields' ? undefined : 'none' }}>
+      <AccountFieldsPage />
     </div>
 
     {draft && <div className="org-modal-backdrop" onClick={() => setDraft(null)}>

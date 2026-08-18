@@ -89,21 +89,26 @@ export function AccountFieldsPage() {
     } catch (e) { setSuccess(''); setError(e instanceof Error ? e.message : '保存失败。') }
   }
 
-  if (!fields) return <section className="page"><div className="state-card"><h2>加载中…</h2></div></section>
+  if (!fields) return <div className="org-manage-loading"><p>加载中…</p></div>
 
-  return <section className="page org-manage-page">
-    <div className="page-heading">
-      <div><h1>账号字段</h1><p>管理「账号 新增/修改」弹窗中的字段选项：部门、小组、岗位与部门主管岗位规则。不影响组织架构人员数据。</p></div>
-      <div className="page-heading-actions">
-        <button type="button" className="primary-button" onClick={() => void save()}>保存全部修改</button>
-        <button type="button" className="text-action" onClick={() => void load()}>放弃并刷新</button>
-      </div>
+  const jumpTo = (id: string) => { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+
+  return <div className="account-fields-wrap">
+    <div className="org-manage-jump">
+      <span className="org-manage-jump-label">快捷跳转</span>
+      <button type="button" onClick={() => jumpTo('af-depts')}>部门</button>
+      <button type="button" onClick={() => jumpTo('af-teams')}>小组</button>
+      <button type="button" onClick={() => jumpTo('af-roles')}>岗位</button>
+      <button type="button" onClick={() => jumpTo('af-heads')}>主管规则</button>
+      <span className="org-manage-jump-spacer" />
+      {dirty && <em className="org-manage-dirty">有未保存修改</em>}
+      <button type="button" className="text-action" onClick={() => void load()}>放弃并刷新</button>
+      <button type="button" className="primary-button" onClick={() => void save()}>保存全部修改</button>
     </div>
     {error && <p className="account-feedback" role="status">{error}</p>}
     {success && <p className="account-feedback success" role="status">{success}</p>}
-    {dirty && <p className="org-chart-message">有未保存的修改，请点击「保存全部修改」。</p>}
 
-    <section className="org-manage-section">
+    <section className="org-manage-section" id="af-depts">
       <h2 className="org-manage-sub">部门选项</h2>
       <form className="org-manage-add" onSubmit={submitDept}>
         <input required value={newDept} onChange={e => setNewDept(e.target.value)} placeholder="新部门选项，如 海外事业部" />
@@ -123,7 +128,7 @@ export function AccountFieldsPage() {
       </div>
     </section>
 
-    <section className="org-manage-section">
+    <section className="org-manage-section" id="af-teams">
       <h2 className="org-manage-sub">小组选项（按部门）</h2>
       <label className="org-manage-dept-select">部门<select value={deptForTeams} onChange={e => setDeptForTeams(e.target.value)}>{fields.departments.map(d => <option key={d} value={d}>{d}</option>)}</select></label>
       <form className="org-manage-add" onSubmit={submitTeam}>
@@ -145,7 +150,7 @@ export function AccountFieldsPage() {
       </div>
     </section>
 
-    <section className="org-manage-section">
+    <section className="org-manage-section" id="af-roles">
       <h2 className="org-manage-sub">岗位选项</h2>
       <form className="org-manage-add" onSubmit={submitRole}>
         <input required value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="新岗位选项，如 培训专员" />
@@ -172,7 +177,7 @@ export function AccountFieldsPage() {
       </div>
     </section>
 
-    <section className="org-manage-section">
+    <section className="org-manage-section" id="af-heads">
       <h2 className="org-manage-sub">部门主管岗位规则</h2>
       <p className="org-manage-tip">每个部门选择一个岗位，选择该岗位的账号即视为该部门主管（在账号弹窗中可勾选「部门主管」）。</p>
       <div className="org-manage-list">
@@ -188,7 +193,7 @@ export function AccountFieldsPage() {
         ))}
       </div>
     </section>
-  </section>
+  </div>
 }
 
 function roleLabelOf(role?: string) { return role ? (roles[role as Role]?.label ?? role) : '（不设主管）' }

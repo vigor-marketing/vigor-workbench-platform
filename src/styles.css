@@ -652,6 +652,17 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-manage-edit button { border: 1px solid #d8d9d4; background: #fff; border-radius: 7px; font-size: 11px; color: #61798a; padding: 5px 11px; white-space: nowrap; }
 .org-manage-edit button:first-of-type { border-color: #111315; background: #111315; color: #fff; }
 .account-feedback.success { border-color: #b7e0c4; background: #edf7ef; color: #24643b; }
+.org-manage-jump { position: sticky; top: 76px; z-index: 30; display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e3e6e1; border-radius: 10px; padding: 8px 12px; margin: 16px 0; flex-wrap: wrap; }
+.org-manage-jump-label { font-size: 12px; color: #8a97a1; font-weight: 700; margin-right: 2px; }
+.org-manage-jump button { border: 1px solid #e0e3df; background: #fff; border-radius: 7px; font-size: 12px; color: #3a464d; padding: 6px 13px; }
+.org-manage-jump button:hover { background: #f5f5f2; border-color: #cfd5d1; }
+.org-manage-jump .primary-button { border: 0; }
+.org-manage-jump-spacer { flex: 1; }
+.org-manage-dirty { font-style: normal; font-size: 12px; color: #a61b14; background: #fff0ee; border-radius: 999px; padding: 4px 10px; }
+.org-manage-section { scroll-margin-top: 130px; }
+.account-fields-wrap { max-width: 900px; }
+.org-manage-loading { padding: 30px 0; color: #8a97a1; font-size: 13px; }
+
 .org-manage-sub { margin: 26px 0 4px; font-size: 14px; color: #1b2430; }
 .org-manage-section + .org-manage-section .org-manage-sub { border-top: 1px solid #e6e9e5; padding-top: 22px; }
 .org-manage-tip { margin: 6px 0 10px; color: #8a97a1; font-size: 12px; line-height: 1.6; }
