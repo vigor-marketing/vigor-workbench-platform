@@ -175,7 +175,7 @@ function notificationMeta(todo: Todo): { label: string; href: string } {
 function NotificationPanel({ todos, lastSyncedAt, onClose }: { todos: Todo[]; lastSyncedAt: Date | null; onClose: () => void }) {
   const syncText = lastSyncedAt ? `每秒更新 · ${lastSyncedAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '正在同步'
   return <section id="notification-panel" className="notification-panel" role="dialog" aria-label="实时通知">
-    <div className="notification-heading"><div><p className="eyebrow">LIVE NOTIFICATIONS</p><h2>实时提醒</h2></div><span className="notification-sync"><Icon name="clock" size={13} />{syncText}</span></div>
+    <div className="notification-heading"><div><p className="eyebrow">LIVE NOTIFICATIONS</p><h2>实时提醒</h2></div><span className="notification-head-right"><span className="notification-sync"><Icon name="clock" size={13} />{syncText}</span><button className="notification-close" type="button" aria-label="关闭提醒面板" title="关闭" onClick={onClose}>✕</button></span></div>
     {todos.length ? <div className="notification-list">{todos.slice(0, 5).map(todo => { const meta = notificationMeta(todo); return <Link to={meta.href} className="notification-item" key={todo.id} onClick={onClose}><span className={`notification-priority ${todo.priority}`} /><span><em>{meta.label}</em><b>{todo.title}</b><small>{todo.source} · {todo.due}</small></span><Icon name="arrow" size={15} /></Link> })}</div> : <div className="notification-empty"><Icon name="check" size={19} /><span>暂无待处理提醒</span></div>}
     <Link to="/todos" className="notification-footer" onClick={onClose}>进入待办中心 <Icon name="arrow" size={15} /></Link>
   </section>

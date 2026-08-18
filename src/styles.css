@@ -41,7 +41,10 @@ button { cursor: pointer; }
 .notification-panel { position: absolute; right: 0; top: 42px; z-index: 20; width: min(360px, calc(100vw - 30px)); border: 1px solid #cfd5d1; background: #fafaf7; box-shadow: 0 14px 30px rgba(23, 37, 48, .16); }
 .notification-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 17px 13px; border-bottom: 1px solid #d9ddda; }
 .notification-heading .eyebrow { margin-bottom: 4px; }
-.notification-heading h2 { font-size: 15px; }
+.notification-heading h2 { font-size: 15px; }.notification-head-right { display: flex; align-items: center; gap: 8px; }
+.notification-close { border: 0; background: transparent; color: #8a97a1; font-size: 13px; line-height: 1; padding: 4px 7px; border-radius: 6px; cursor: pointer; }
+.notification-close:hover { background: #eef0ec; color: #1b2430; }
+
 .notification-sync { display: inline-flex; align-items: center; gap: 4px; color: #6e7d84; font: 10px 'DM Mono', monospace; white-space: nowrap; }
 .notification-list { display: grid; }
 .notification-item { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 10px; align-items: start; padding: 13px 17px; border-bottom: 1px solid #e0e3df; }
