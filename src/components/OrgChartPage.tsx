@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from './Icon'
-import { getAccountFields, type AccountFields } from '../lib/server-auth'
+import { getAccountFields, getServerUsers, type AccountFields } from '../lib/server-auth'
 import { DEPT_COLORS, roles, type Role } from '../data/workbench'
 
 type OrgPerson = { id: string; department: string; team: string; role: string; name: string; englishName: string }
@@ -12,21 +12,30 @@ type OrgDeptNode = { department: string; teams: OrgTeamNode[] }
 export function OrgChartPage() {
   const [tree, setTree] = useState<OrgDeptNode[]>([])
   const [fields, setFields] = useState<AccountFields | null>(null)
+  const [accounts, setAccounts] = useState<any[]>([])
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
     try {
-      const [r, f] = await Promise.all([fetch('/api/org/tree', { credentials: 'include' }), getAccountFields().catch(() => null)])
+      const [r, f, u] = await Promise.all([fetch('/api/org/tree', { credentials: 'include' }), getAccountFields().catch(() => null), getServerUsers().catch(() => [])])
       if (!r.ok) throw new Error('加载组织架构失败，请刷新重试。')
       setTree(await r.json() as OrgDeptNode[])
-      setFields(f)
+      setFields(f); setAccounts(u as any[])
     } catch (e) { setError(e instanceof Error ? e.message : '加载失败') }
   }, [])
-  // 岗位显示与账号权限一致：内置岗位若被改名（roleLabels 覆盖），组织架构图同样显示新名
+  // 岗位显示与账号权限保持一致（以账号为准）：账号岗位ID → 改名覆盖 → 内置标签 → 原样
   const roleText = (role: string) => {
     if (!role) return ''
-    for (const [id, item] of Object.entries(roles)) if (item.label === role) return fields?.roleLabels?.[id] ?? item.label
-    return role
+    if (fields?.roleLabels?.[role]) return fields.roleLabels[role]
+    return roles[role as Role]?.label ?? role
+  }
+  // 人员岗位优先取账号角色（保证组织架构与账号权限两页映射一致），无账号时回退组织岗位
+  const personRole = (personId: string, orgRole: string) => {
+    const acc = accounts.find(u => u.username === personId)
+    if (acc?.role) return roleText(acc.role)
+    if (!orgRole) return ''
+    for (const [id, item] of Object.entries(roles)) if (item.label === orgRole) return fields?.roleLabels?.[id] ?? item.label
+    return orgRole
   }
   useEffect(() => { void load() }, [load])
 
@@ -56,7 +65,7 @@ export function OrgChartPage() {
     <div className="org-chart-vertical">
       {gm && <div className="org-gm-node">
         <span className="org-gm-avatar">{gm.name.slice(0, 1)}</span>
-        <div className="org-gm-main"><b>{gm.name}</b><small>{roleText(gm.role).replace(/部门负责人\/管理岗\/?/, '')}</small></div>
+        <div className="org-gm-main"><b>{gm.name}</b><small>{personRole(gm.id, gm.role).replace(/部门负责人\/管理岗\/?/, '')}</small></div>
         <span className="org-gm-tag">总经理</span>
       </div>}
 
@@ -69,7 +78,7 @@ export function OrgChartPage() {
             <span className="org-dept-mark" style={{ background: color }}>{d.department.slice(0, 1)}</span>
             <h2>{d.department}</h2>
             {heads.length > 0 && <div className="org-dept-heads">{heads.map(h => (
-              <span className="org-head-chip" key={h.id} title={`${h.name} · ${roleText(h.role)}`}><i style={{ background: color }}>{h.name.slice(0, 1)}</i>{h.name}</span>
+              <span className="org-head-chip" key={h.id} title={`${h.name} · ${personRole(h.id, h.role)}`}><i style={{ background: color }}>{h.name.slice(0, 1)}</i>{h.name}</span>
             ))}</div>}
             <small>{count} 人</small>
           </header>
@@ -81,7 +90,7 @@ export function OrgChartPage() {
                   {t.persons.filter(p => p.id !== gm?.id).sort((a, b) => headRank(b.role) - headRank(a.role)).map(p => (
                     <div className="org-person-chip" key={p.id}>
                       <span className="org-person-avatar">{p.name.slice(0, 1)}</span>
-                      <div className="org-person-chip-main"><b>{p.name}</b><small>{p.englishName}{p.role ? ' · ' + roleText(p.role) : ''}</small></div>
+                      <div className="org-person-chip-main"><b>{p.name}</b><small>{p.englishName}{personRole(p.id, p.role) ? ' · ' + personRole(p.id, p.role) : ''}</small></div>
                     </div>
                   ))}
                 </div>
