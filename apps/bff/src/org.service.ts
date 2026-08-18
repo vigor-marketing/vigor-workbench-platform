@@ -27,10 +27,10 @@ const seedFlat: PublicOrgPerson[] = [
   { id: 'shane', department: '采购部', team: '质量组', role: '部门负责人/管理岗', name: '徐振兴', englishName: 'Shane' },
   { id: 'andy', department: '采购部', team: '质量组', role: '成员', name: '张刚刚', englishName: 'Andy' },
   { id: 'hunter', department: '采购部', team: '质量组', role: '成员', name: '王冕', englishName: 'Hunter' },
-  { id: 'charles', department: '采购部', team: '采购二单元', role: '部门负责人/管理岗', name: '张朋', englishName: 'Charles' },
-  { id: 'luna', department: '采购部', team: '采购二单元', role: '成员', name: '张娟霞', englishName: 'Luna' },
-  { id: 'tony', department: '采购部', team: '采购二单元', role: '成员', name: '张睿', englishName: 'Tony' },
-  { id: 'cooper', department: '采购部', team: '采购二单元', role: '成员', name: '秦鸿基', englishName: 'Cooper' },
+  { id: 'charles', department: '采购部', team: '采购二组', role: '部门负责人/管理岗', name: '张朋', englishName: 'Charles' },
+  { id: 'luna', department: '采购部', team: '采购二组', role: '成员', name: '张娟霞', englishName: 'Luna' },
+  { id: 'tony', department: '采购部', team: '采购二组', role: '成员', name: '张睿', englishName: 'Tony' },
+  { id: 'cooper', department: '采购部', team: '采购二组', role: '成员', name: '秦鸿基', englishName: 'Cooper' },
   { id: 'cayla', department: '销售部', team: 'V1(飓风之眼)', role: '部门负责人/管理岗', name: '杨璨羽', englishName: 'Cayla' },
   { id: 'terri', department: '销售部', team: 'V1(飓风之眼)', role: '成员', name: '陈欣悦', englishName: 'Terri' },
   { id: 'carol', department: '销售部', team: 'V1(飓风之眼)', role: '成员', name: '薛宁', englishName: 'Carol' },
@@ -57,8 +57,8 @@ const seedFlat: PublicOrgPerson[] = [
   { id: 'hailey', department: '销售部', team: 'V2(增长引擎)', role: '部门负责人/管理岗', name: '王旭梅', englishName: 'Hailey' },
   { id: 'kevin', department: '销售部', team: 'V2(增长引擎)', role: '成员', name: '徐越', englishName: 'Kevin' },
   { id: 'celeste', department: '销售部', team: 'V2(增长引擎)', role: '成员', name: '车欣芋', englishName: 'Celeste' },
-  { id: 'rita', department: '采购部', team: '采购一单元', role: '部门负责人/管理岗', name: '乔婷', englishName: 'Rita' },
-  { id: 'ruby', department: '采购部', team: '采购一单元', role: '成员', name: '杨一', englishName: 'Ruby' },
+  { id: 'rita', department: '采购部', team: '采购一组', role: '部门负责人/管理岗', name: '乔婷', englishName: 'Rita' },
+  { id: 'ruby', department: '采购部', team: '采购一组', role: '成员', name: '杨一', englishName: 'Ruby' },
   { id: 'grace', department: '人力总经办', team: '人力总经办', role: '成员', name: '刘杨杨', englishName: 'Grace' },
   { id: 'miya', department: '人力总经办', team: '人力总经办', role: '成员', name: '张朦', englishName: 'Miya' },
   { id: 'frances', department: '人力总经办', team: '人力总经办', role: '成员', name: '刘欣卓', englishName: 'Frances' },
@@ -111,7 +111,7 @@ const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采�
 const deptRank = (name: string) => { const i = DEPT_ORDER.indexOf(name); return i === -1 ? DEPT_ORDER.length : i }
 const teamRank = (dept: string, team: string) => {
   if (dept === '销售部') { const m = team.match(/V(\d+)/); if (m) return Number(m[1]) }
-  if (dept === '采购部') { if (team.includes('质量')) return 1; if (team.includes('一单元')) return 2; if (team.includes('二单元')) return 3 }
+  if (dept === '采购部') { if (team.includes('一组') || team.includes('一单元')) return 1; if (team.includes('二组') || team.includes('二单元')) return 2; if (team.includes('质量')) return 3 }
   return 99
 }
 

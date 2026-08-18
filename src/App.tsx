@@ -406,18 +406,22 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
       {DEPT_ORDER.concat(['其他']).map(dept => {
         const list = byDept.get(dept) || []
         if (!list.length) return null
-        const salesTeams = dept === '销售部' ? [...new Set(list.map(u => u.teamName).filter(Boolean))] : []
+        // 销售部与采购部按小组分块展示；小组顺序按组织架构中的排序（销售 V1–V5，采购 一组/二组/质量组）
+        const subTeams = (dept === '销售部' || dept === '采购部') ? [...new Set(list.map(u => u.teamName).filter(Boolean))] : []
+        const orgOrder = orgDepts.find(d => d.department === dept)?.teams.map(t => t.team) ?? []
+        subTeams.sort((a, b) => orgOrder.indexOf(a) - orgOrder.indexOf(b))
+        const headFirst = (arr: any[]) => [...arr].sort((a, b) => Number(b.departmentHead === true) - Number(a.departmentHead === true))
         const accent = DEPT_COLORS[dept] || '#15202c'
-        const deptHead = list.find(u => u.departmentHead)
+        const deptHeads = list.filter(u => u.departmentHead)
         return <section className="account-dept" key={dept} style={{ borderTop: `3px solid ${accent}` }}>
-          <header className="account-dept-head"><span className="account-dept-mark" style={{ background: accent }}>{dept.slice(0, 1)}</span><h2>{dept}</h2>{deptHead && <span className="account-dept-head-chip"><i style={{ background: accent }}>{deptHead.displayName.slice(0, 1)}</i>{deptHead.displayName} · 主管</span>}<small>{list.length} 个账号</small></header>
+          <header className="account-dept-head"><span className="account-dept-mark" style={{ background: accent }}>{dept.slice(0, 1)}</span><h2>{dept}</h2>{deptHeads.map(h => <span className="account-dept-head-chip" key={h.id}><i style={{ background: accent }}>{h.displayName.slice(0, 1)}</i>{h.displayName} · 主管</span>)}<small>{list.length} 个账号</small></header>
           <div className="account-dept-body">
-            {salesTeams.length > 1 ? salesTeams.map(team => (
+            {subTeams.length > 1 ? subTeams.map(team => (
               <div className="account-team-group" key={team}>
                 <div className="account-team-title">{team}</div>
-                <div className="account-cards">{list.filter(u => u.teamName === team).map(renderCard)}</div>
+                <div className="account-cards">{headFirst(list.filter(u => u.teamName === team)).map(renderCard)}</div>
               </div>
-            )) : <div className="account-cards">{list.map(renderCard)}</div>}
+            )) : <div className="account-cards">{headFirst(list).map(renderCard)}</div>}
           </div>
         </section>
       })}

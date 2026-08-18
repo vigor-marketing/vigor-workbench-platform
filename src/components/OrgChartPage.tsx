@@ -27,6 +27,8 @@ export function OrgChartPage() {
     return (office?.teams[0]?.persons ?? []).find(p => p.role.includes('总经理') && !p.role.includes('副总'))
   }, [tree])
 
+  // 负责人优先：岗位含 经理/负责人/管理岗 的人员排在小组第一位
+  const headRank = (role: string) => (/经理|总监|总经理|副总|负责人|管理岗/.test(role || '') ? 1 : 0)
   const headsOf = (d: OrgDeptNode) => {
     const heads: OrgPerson[] = []
     for (const t of d.teams) {
@@ -67,7 +69,7 @@ export function OrgChartPage() {
               <div className="org-team-group" key={t.team}>
                 {d.teams.length > 1 && <div className="org-team-group-title">{t.team} · {t.persons.length} 人</div>}
                 <div className="org-person-chips">
-                  {t.persons.filter(p => p.id !== gm?.id).map(p => (
+                  {t.persons.filter(p => p.id !== gm?.id).sort((a, b) => headRank(b.role) - headRank(a.role)).map(p => (
                     <div className="org-person-chip" key={p.id}>
                       <span className="org-person-avatar">{p.name.slice(0, 1)}</span>
                       <div className="org-person-chip-main"><b>{p.name}</b><small>{p.englishName}{p.role ? ' · ' + p.role : ''}</small></div>
