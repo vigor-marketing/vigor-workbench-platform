@@ -423,7 +423,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     {notice && <p className="account-feedback" role="status">{notice}</p>}
 
     <div className="account-depts">
-      {DEPT_ORDER.concat(['其他']).map(dept => {
+      {[...new Set([...DEPT_ORDER, ...(accountFields?.departments ?? [])]), '其他'].map(dept => {
         const list = byDept.get(dept) || []
         if (!list.length) return null
         // 销售部与采购部按小组分块展示；小组顺序按组织架构中的排序（销售 V1–V5，采购 一组/二组/质量组）
