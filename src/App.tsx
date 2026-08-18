@@ -340,7 +340,8 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     '人力总监': '人力总经办', '行政专员': '人力总经办',
     '销售经理': '销售部', '销售组长': '销售部', '销售员': '销售部', '项目跟进员': '销售部',
     '采购经理': '采购部', '采购组长': '采购部', '采购员': '采购部', '质量组': '采购部',
-    '销售支持组': '销售支持组', '市场组': '市场运营组',
+    '销售支持组': '销售支持组', '销售支持组组长': '销售支持组',
+    '市场组': '市场运营组', '市场运营组组长': '市场运营组',
     '船务经理': '船务部', '船务操作员': '船务部', '财务经理': '财务部', '会计': '财务部',
   }
   const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
@@ -349,7 +350,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const HEAD_ROLE: Record<string, string> = {
     '总经理办公室': 'general_manager', '人力总经办': 'hr_director',
     '销售部': 'sales_manager', '采购部': 'procurement_manager',
-    '销售支持组': 'sales_support', '市场运营组': 'market_team',
+    '销售支持组': '销售支持组组长', '市场运营组': '市场运营组组长',
     '船务部': 'shipping_manager', '财务部': 'finance_manager',
   }
   const headRoleOf = (department: string) => HEAD_ROLE[department]
