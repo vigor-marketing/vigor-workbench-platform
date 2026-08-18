@@ -1,4 +1,5 @@
 
+> **归档约定（2026-08-18 起生效）**：本应用产生的所有文件必须存放在 `/Volumes/v1/Deepseek文件储存/` 下，禁止放 `/Volumes/v1` 根目录。归类：项目代码 → `数据/`、部署包 → `数据/部署包/`、文档 → `数据/文档/`、对话上传与记录 → `对话记录/`；应用运行依赖（glm4v-mcp、pylib、WorkBuddy数据储存）保留原位。
 > **仓库路径（2026-08-18 归档后）**：`/Volumes/v1/Deepseek文件储存/数据/vigor-workbench-platform`（原 `/Volumes/v1/vigor-workbench-platform` 已迁移，勿用旧路径）。远程 `git@github.com:vigor-marketing/vigor-workbench-platform.git`。
 # 统一工作台｜项目长期记忆
 
