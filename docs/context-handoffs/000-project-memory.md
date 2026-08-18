@@ -1,3 +1,5 @@
+
+> **仓库路径（2026-08-18 归档后）**：`/Volumes/v1/Deepseek文件储存/数据/vigor-workbench-platform`（原 `/Volumes/v1/vigor-workbench-platform` 已迁移，勿用旧路径）。远程 `git@github.com:vigor-marketing/vigor-workbench-platform.git`。
 # 统一工作台｜项目长期记忆
 
 最后更新：2026-08-17
