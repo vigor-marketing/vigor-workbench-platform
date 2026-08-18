@@ -78,27 +78,4 @@ export class AuthService {
     return { ok: true }
   }
 
-  // ---- 组织结构级联（部门/小组/岗位重命名时同步更新账号） ----
-  async renameDepartment(oldName: string, newName: string) {
-    const store = await this.load(); let changed = 0
-    for (const u of store.users) if (u.department === oldName) { u.department = newName; changed++ }
-    if (changed) await this.persist()
-    return { ok: true, changed }
-  }
-  async renameTeam(department: string, oldTeam: string, newTeam: string) {
-    const store = await this.load(); let changed = 0
-    for (const u of store.users) if (u.department === department && u.teamName === oldTeam) { u.teamName = newTeam; changed++ }
-    if (changed) await this.persist()
-    return { ok: true, changed }
-  }
-  async renameRole(oldRole: string, newRole: string) {
-    const store = await this.load(); let changed = 0
-    for (const u of store.users) if (u.role === oldRole) { u.role = newRole; changed++ }
-    if (changed) await this.persist()
-    return { ok: true, changed }
-  }
-  async countDepartmentUsers(department: string) { return (await this.load()).users.filter(u => u.department === department).length }
-  async countTeamUsers(department: string, team: string) { return (await this.load()).users.filter(u => u.department === department && u.teamName === team).length }
-  async countRoleUsers(role: string) { return (await this.load()).users.filter(u => u.role === role).length }
-
 }

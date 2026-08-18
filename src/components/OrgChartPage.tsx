@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from './Icon'
-import { getServerUsers } from '../lib/server-auth'
 import { DEPT_COLORS } from '../data/workbench'
 
 type OrgPerson = { id: string; department: string; team: string; role: string; name: string; englishName: string }
@@ -11,18 +10,15 @@ type OrgDeptNode = { department: string; teams: OrgTeamNode[] }
 // 组织架构图（竖向）：根节点=总经理 → 部门区块（负责人头像 + 强调色）→ 团队分组 → 人员
 export function OrgChartPage() {
   const [tree, setTree] = useState<OrgDeptNode[]>([])
-  const [accounts, setAccounts] = useState<any[]>([])
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
     try {
-      const [r, users] = await Promise.all([fetch('/api/org/tree', { credentials: 'include' }), getServerUsers().catch(() => [])])
+      const r = await fetch('/api/org/tree', { credentials: 'include' })
       if (!r.ok) throw new Error('加载组织架构失败，请刷新重试。')
       setTree(await r.json() as OrgDeptNode[])
-      setAccounts(users as any[])
     } catch (e) { setError(e instanceof Error ? e.message : '加载失败') }
   }, [])
-  const accountOf = (personId: string) => accounts.find(u => u.username === personId)
   useEffect(() => { void load() }, [load])
 
   const total = useMemo(() => tree.reduce((n, d) => n + d.teams.reduce((m, t) => m + t.persons.length, 0), 0), [tree])
@@ -62,7 +58,7 @@ export function OrgChartPage() {
             <span className="org-dept-mark" style={{ background: color }}>{d.department.slice(0, 1)}</span>
             <h2>{d.department}</h2>
             {heads.length > 0 && <div className="org-dept-heads">{heads.map(h => (
-              <span className="org-head-chip" key={h.id} title={`${h.name} · ${h.role}`}><i style={{ background: color }}>{h.name.slice(0, 1)}</i>{h.name}{accountOf(h.id)?.departmentHead && <em className="org-head-account">主管</em>}</span>
+              <span className="org-head-chip" key={h.id} title={`${h.name} · ${h.role}`}><i style={{ background: color }}>{h.name.slice(0, 1)}</i>{h.name}</span>
             ))}</div>}
             <small>{count} 人</small>
           </header>
@@ -74,9 +70,7 @@ export function OrgChartPage() {
                   {t.persons.filter(p => p.id !== gm?.id).map(p => (
                     <div className="org-person-chip" key={p.id}>
                       <span className="org-person-avatar">{p.name.slice(0, 1)}</span>
-                      <div className="org-person-chip-main"><b>{p.name}</b><small>{p.englishName}{p.role ? ' · ' + p.role : ''}</small>
-                        {(accountOf(p.id)?.departmentHead || accountOf(p.id)?.isAdmin) && <span className="org-person-marks">{accountOf(p.id)?.departmentHead && <em className="head">主管</em>}{accountOf(p.id)?.isAdmin && <em className="admin">管理员</em>}</span>}
-                      </div>
+                      <div className="org-person-chip-main"><b>{p.name}</b><small>{p.englishName}{p.role ? ' · ' + p.role : ''}</small></div>
                     </div>
                   ))}
                 </div>

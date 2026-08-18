@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-type IconName = 'grid' | 'check' | 'arrow' | 'external' | 'shield' | 'alert' | 'settings' | 'search' | 'bell' | 'lock' | 'clock' | 'user' | 'org' | 'users' | 'user-check' | 'key' | 'sliders' | 'layers' | 'crown'
+type IconName = 'grid' | 'check' | 'arrow' | 'external' | 'shield' | 'alert' | 'settings' | 'search' | 'bell' | 'lock' | 'clock' | 'user' | 'org' | 'users' | 'user-check' | 'key' | 'sliders'
 
 const paths: Record<IconName, ReactNode> = {
   grid: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></>,
@@ -20,8 +20,6 @@ const paths: Record<IconName, ReactNode> = {
   'user-check': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="m16 11 2 2 4-4" /></>,
   key: <><path d="M2.6 17.4A2 2 0 0 0 2 18.8V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.2a2 2 0 0 0 1.4-.6l.8-.8a6.5 6.5 0 1 0-4-4Z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></>,
   sliders: <><line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" /><line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" /><line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" /><line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" /></>,
-  layers: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /><path d="m3 18 9 5 9-5" /></>,
-  crown: <><path d="M11.6 3.3a.5.5 0 0 1 .9 0l2.9 5.6a1 1 0 0 0 1.5.3l4.3-3.7a.5.5 0 0 1 .8.5l-2.8 10.3a1 1 0 0 1-1 .7H5.9a1 1 0 0 1-1-.7L2.1 6a.5.5 0 0 1 .8-.5l4.3 3.7a1 1 0 0 0 1.5-.3l2.9-5.6Z" /><path d="M5 21h14" /></>,
 }
 
 export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
