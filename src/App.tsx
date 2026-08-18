@@ -8,7 +8,7 @@ import { OrgChartPage } from './components/OrgChartPage'
 import { AccountFieldsPage } from './components/AccountFieldsPage'
 import { appUrl, apps, departments, DEPT_COLORS, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
 import { getUsers, isAllowed, saveUsers, type DemoUser, type PermissionMap } from './lib/demo-auth'
-import { addAccountFieldRole, addAccountFieldTeam, changeServerPassword, deleteServerUser, getAccountFields, getOrgTree, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout, type AccountFields, type OrgDeptNode } from './lib/server-auth'
+import { addAccountFieldRole, addAccountFieldTeam, changeServerPassword, deleteServerUser, getAccountFields, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout, type AccountFields } from './lib/server-auth'
 import { fetchTodos } from './lib/platform-api'
 import './styles.css'
 
@@ -296,15 +296,16 @@ function PersonalAccountPage({ currentUser }: { currentUser: DemoUser }) {
 
 function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const [users, setUsers] = useState<any[]>([])
-  const [orgDepts, setOrgDepts] = useState<OrgDeptNode[]>([])
   const [accountFields, setAccountFields] = useState<AccountFields | null>(null)
   const [adminView, setAdminView] = useState<'accounts' | 'fields'>('accounts')
   const [notice, setNotice] = useState('')
   const [draft, setDraft] = useState<any>(null)
   const empty = { username: '', displayName: '', role: 'salesperson', password: '', department: '', teamName: '', isAdmin: false, disabled: false, departmentHead: false, addingRole: false, addingTeam: false, newTeam: '', prevRole: '' }
   const refresh = async () => { try { setUsers(await getServerUsers()) } catch { setNotice('无法读取账号列表，请重新登录后再试。') } }
-  const refreshOrg = async () => { try { const [d, f] = await Promise.all([getOrgTree(), getAccountFields().catch(() => null)]); setOrgDepts(d); setAccountFields(f) } catch { /* 下拉不可用时仍可创建账号 */ } }
+  const refreshOrg = async () => { try { setAccountFields(await getAccountFields()) } catch { /* 下拉不可用时仍可创建账号 */ } }
   useEffect(() => { void refresh(); void refreshOrg() }, [])
+  // 切回账号列表时重新拉取字段配置与账号，保证配置改动后编辑弹窗立即同步（强关联）
+  useEffect(() => { if (adminView === 'accounts') { void refresh(); void refreshOrg() } }, [adminView])
   useEffect(() => {
     if (!notice) return
     const timer = window.setTimeout(() => setNotice(''), 3200)
@@ -383,7 +384,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     const custom = [...new Set([...(accountFields?.customRoles ?? []), ...fromUsers])].map(r => ({ value: r, label: r }))
     return [...builtin, ...custom]
   }, [users, accountFields])
-  const teamsOf = (department: string) => accountFields?.teams?.[department] ?? orgDepts.find(d => d.department === department)?.teams.map(t => t.team) ?? []
+  const teamsOf = (department: string) => accountFields?.teams?.[department] ?? []
   // 岗位下拉选项：内置 + 自定义 + 当前草稿岗位（保证“新增岗位”后下拉能正确回显，避免必填校验拦截提交）
   const allRoleOptions = useMemo(() => {
     const list = [...roleOptions]
@@ -432,7 +433,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         const list = byDept.get(dept) || []
         if (!list.length) return null
         // 销售部与采购部按小组分块展示；小组顺序按组织架构中的排序（销售 V1–V5，采购 一组/二组/质量组）
-        const orgOrder = orgDepts.find(d => d.department === dept)?.teams.map(t => t.team) ?? []
+        const orgOrder = accountFields?.teams?.[dept] ?? []
         const subTeams = (dept === '销售部' || dept === '采购部') ? [...new Set(list.map(u => u.teamName).filter(Boolean))].filter(t => orgOrder.includes(t)) : []
         subTeams.sort((a, b) => orgOrder.indexOf(a) - orgOrder.indexOf(b))
         const headFirst = (arr: any[]) => [...arr].sort((a, b) => Number(b.departmentHead === true) - Number(a.departmentHead === true))
@@ -466,7 +467,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
           <label>姓名<input required value={draft.displayName} onChange={e => setDraft({ ...draft, displayName: e.target.value })} placeholder="员工姓名" /></label>
           <label>部门<select required value={draft.department ?? ''} onChange={e => { const dept = e.target.value; setDraft({ ...draft, department: dept, teamName: '', addingTeam: false, newTeam: '', departmentHead: isHeadRole(dept, draft.role) ? (draft.id ? draft.departmentHead : true) : false }) }}>
             <option value="" disabled>请选择部门</option>
-            {(accountFields?.departments ?? orgDepts.map(d => d.department)).map(d => <option key={d} value={d}>{d}</option>)}
+            {(accountFields?.departments ?? []).map(d => <option key={d} value={d}>{d}</option>)}
           </select></label>
           {draft.department && <label>小组{draft.addingTeam ? (
             <span className="org-modal-inline-add"><input autoFocus required value={draft.newTeam ?? ''} onChange={e => setDraft({ ...draft, newTeam: e.target.value })} placeholder="小组名称，如 V6(新星组)" /><button type="button" onClick={() => void addTeam()}>添加</button><button type="button" onClick={() => setDraft({ ...draft, addingTeam: false, newTeam: '' })}>取消</button></span>
