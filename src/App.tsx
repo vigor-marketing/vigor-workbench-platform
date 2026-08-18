@@ -34,7 +34,6 @@ function Layout() {
     if (!isDesktopView()) { setSidebarOpen(open => !open); return }
     // 桌面端：点击汉堡按钮固定/取消固定侧边栏；默认由悬停控制展开
     setSidebarPinned(pinned => !pinned)
-    setSidebarHover(true)
   }
   const enterSidebar = () => {
     if (!isDesktopView()) return
