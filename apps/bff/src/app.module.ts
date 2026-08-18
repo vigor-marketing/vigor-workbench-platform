@@ -8,6 +8,7 @@ import { AuthService } from './auth.service.js'
 import { SalesService } from './sales.service.js'
 import { OrgService } from './org.service.js'
 import { RolesService } from './roles.service.js'
+import { AccountFieldsService } from './account-fields.service.js'
 
-@Module({ controllers: [AppController], providers: [AppsService, IdentityService, TodosService, IntegrationsService, AuthService, SalesService, OrgService, RolesService] })
+@Module({ controllers: [AppController], providers: [AppsService, IdentityService, TodosService, IntegrationsService, AuthService, SalesService, OrgService, RolesService, AccountFieldsService] })
 export class AppModule {}

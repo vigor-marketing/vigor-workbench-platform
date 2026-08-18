@@ -71,3 +71,18 @@ export async function renameOrgDepartment(oldName: string, newName: string) { re
 export async function deleteOrgDepartment(name: string) { return request('org/departments/' + encodeURIComponent(name), { method: 'DELETE' }) }
 export async function renameOrgTeam(department: string, oldTeam: string, newTeam: string) { return request('org/teams/' + encodeURIComponent(oldTeam), { method: 'PUT', body: JSON.stringify({ department, team: newTeam }) }) }
 export async function deleteOrgTeam(department: string, team: string) { return request('org/teams?department=' + encodeURIComponent(department) + '&team=' + encodeURIComponent(team), { method: 'DELETE' }) }
+
+export type AccountFields = {
+  version: number
+  departments: string[]
+  teams: Record<string, string[]>
+  customRoles: string[]
+  headRoles: Record<string, string>
+}
+
+export async function getAccountFields(): Promise<AccountFields> { return request('account-fields') }
+export async function saveAccountFields(config: Partial<AccountFields> & { renames?: { type: 'department' | 'team' | 'role'; from: string; to: string; department?: string }[] }) {
+  return request('account-fields', { method: 'PUT', body: JSON.stringify(config) })
+}
+export async function addAccountFieldTeam(department: string, team: string) { return request('account-fields/teams', { method: 'POST', body: JSON.stringify({ department, team }) }) }
+export async function addAccountFieldRole(name: string) { return request('account-fields/roles', { method: 'POST', body: JSON.stringify({ name }) }) }
