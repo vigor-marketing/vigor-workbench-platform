@@ -7,6 +7,7 @@ export type ServerUser = {
   organizationScope: string
   teamId?: string
   teamName?: string
+  department?: string
 }
 
 async function request(path: string, init?: RequestInit) {
@@ -47,4 +48,15 @@ export async function getServerApps() { return request('apps') }
 export async function getServerAppPermissions() { return request('admin/app-permissions') }
 export async function saveServerAppPermissions(appId: string, roles: string[]) {
   return request(`admin/app-permissions/${appId}`, { method: 'PUT', body: JSON.stringify({ roles }) })
+}
+
+export type OrgTeamNode = { team: string; persons: { id: string; role: string; name: string; englishName: string; department: string }[] }
+export type OrgDeptNode = { department: string; teams: OrgTeamNode[] }
+
+export async function getOrgTree(): Promise<OrgDeptNode[]> {
+  return request('org/tree')
+}
+
+export async function addOrgTeam(department: string, team: string) {
+  return request('org/teams', { method: 'POST', body: JSON.stringify({ department, team }) })
 }

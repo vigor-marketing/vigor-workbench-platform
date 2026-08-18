@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { Icon } from './components/Icon'
@@ -7,7 +7,7 @@ import { OrgPickerPage } from './components/OrgPickerPage'
 import { OrgChartPage } from './components/OrgChartPage'
 import { appUrl, apps, departments, DEPT_COLORS, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
 import { getUsers, isAllowed, saveUsers, type DemoUser, type PermissionMap } from './lib/demo-auth'
-import { changeServerPassword, deleteServerUser, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout } from './lib/server-auth'
+import { addOrgTeam, changeServerPassword, deleteServerUser, getOrgTree, getServerApps, getServerAppPermissions, getServerSession, getServerUsers, saveServerAppPermissions, saveServerUser, serverLogin, serverLogout, type OrgDeptNode } from './lib/server-auth'
 import { fetchTodos } from './lib/platform-api'
 import './styles.css'
 
@@ -287,18 +287,35 @@ function PersonalAccountPage({ currentUser }: { currentUser: DemoUser }) {
 
 function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   const [users, setUsers] = useState<any[]>([])
+  const [orgDepts, setOrgDepts] = useState<OrgDeptNode[]>([])
   const [notice, setNotice] = useState('')
   const [draft, setDraft] = useState<any>(null)
-  const empty = { username: '', displayName: '', role: 'salesperson', password: '', teamId: '', teamName: '', isAdmin: false, disabled: false }
+  const empty = { username: '', displayName: '', role: 'salesperson', password: '', department: '', teamName: '', isAdmin: false, disabled: false, addingRole: false, addingTeam: false, newTeam: '', prevRole: '' }
   const refresh = async () => { try { setUsers(await getServerUsers()) } catch { setNotice('无法读取账号列表，请重新登录后再试。') } }
-  useEffect(() => { void refresh() }, [])
+  const refreshOrg = async () => { try { setOrgDepts(await getOrgTree()) } catch { /* 部门下拉不可用时仍可创建账号 */ } }
+  useEffect(() => { void refresh(); void refreshOrg() }, [])
   const save = async (event: FormEvent) => {
     event.preventDefault()
-    try { await saveServerUser(draft.id ?? null, draft); setNotice(draft.id ? '账号资料已更新。' : '新账号已创建。'); setDraft(null); await refresh() }
+    const role = (draft.role ?? '').trim()
+    if (!role) { setNotice('请选择或填写岗位。'); return }
+    if (!draft.department) { setNotice('请选择部门。'); return }
+    const payload: Record<string, unknown> = {
+      username: draft.username, displayName: draft.displayName, role,
+      isAdmin: draft.isAdmin === true, disabled: draft.disabled === true,
+      department: draft.department, teamName: draft.teamName || undefined,
+      ...(draft.password ? { password: draft.password } : {}),
+    }
+    try { await saveServerUser(draft.id ?? null, payload); setNotice(draft.id ? '账号资料已更新。' : '新账号已创建。'); setDraft(null); await refresh(); await refreshOrg() }
     catch (error) { setNotice(error instanceof Error ? error.message : '保存失败，请重试。') }
   }
+  const addTeam = async () => {
+    const name = (draft.newTeam ?? '').trim()
+    if (!name) { setNotice('请输入小组名称。'); return }
+    try { await addOrgTeam(draft.department, name); await refreshOrg(); setDraft({ ...draft, teamName: name, addingTeam: false, newTeam: '' }) }
+    catch (error) { setNotice(error instanceof Error ? error.message : '新增小组失败。') }
+  }
   const toggleDisabled = async (user: any) => {
-    try { await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, disabled: !user.disabled, teamId: user.teamId, teamName: user.teamName }); await refresh() }
+    try { await saveServerUser(user.id, { username: user.username, displayName: user.displayName, role: user.role, isAdmin: user.isAdmin, disabled: !user.disabled, department: user.department, teamName: user.teamName }); await refresh() }
     catch (error) { setNotice(error instanceof Error ? error.message : '操作失败。') }
   }
   const remove = async (user: any) => {
@@ -308,7 +325,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   }
   if (!currentUser.isAdmin) return <section className="page"><div className="state-card"><h2>无管理权限</h2><p>仅管理员可修改账号与岗位。</p></div></section>
 
-  // 岗位 → 部门
+  // 岗位 → 部门（回退推导；账号存在 department 字段时优先使用）
   const ROLE_DEPT: Record<string, string> = {
     '总经理': '总经理办公室', '分管销售副总': '总经理办公室', '分管财务副总': '总经理办公室',
     '人力总监': '人力总经办', '行政专员': '人力总经办',
@@ -318,9 +335,17 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     '船务经理': '船务部', '船务操作员': '船务部', '财务经理': '财务部', '会计': '财务部',
   }
   const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
-  const deptOf = (user: any) => ROLE_DEPT[roles[user.role as Role]?.label ?? user.role] || '其他'
+  const deptOf = (user: any) => user.department || ROLE_DEPT[roles[user.role as Role]?.label ?? user.role] || '其他'
   const byDept = new Map<string, any[]>()
   for (const u of users) { const d = deptOf(u); if (!byDept.has(d)) byDept.set(d, []); byDept.get(d)!.push(u) }
+
+  // 岗位下拉：内置岗位 + 账号中已出现的自定义岗位 + “新增岗位…”
+  const roleOptions = useMemo(() => {
+    const builtin = Object.entries(roles).map(([id, item]) => ({ value: id, label: item.label }))
+    const custom = [...new Set(users.map(u => String(u.role || '').trim()).filter(r => r && !roles[r as Role]))].map(r => ({ value: r, label: r }))
+    return [...builtin, ...custom]
+  }, [users])
+  const teamsOf = (department: string) => orgDepts.find(d => d.department === department)?.teams.map(t => t.team) ?? []
 
   const renderCard = (user: any) => {
     const roleLabel = roles[user.role as Role]?.label ?? user.role
@@ -336,7 +361,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         </div>
       </div>
       <div className="account-card-actions">
-        <button type="button" onClick={() => setDraft({ ...user, password: '' })}>编辑</button>
+        <button type="button" onClick={() => setDraft({ ...user, password: '', department: user.department || deptOf(user), addingRole: false, addingTeam: false, newTeam: '', prevRole: user.role })}>编辑</button>
         <button type="button" onClick={() => void toggleDisabled(user)}>{user.disabled ? '启用' : '停用'}</button>
         <button type="button" className="danger" onClick={() => void remove(user)}>删除</button>
       </div>
@@ -346,7 +371,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   return <section className="page account-admin-page">
     <div className="page-heading">
       <div><h1>账号与权限</h1><p>按部门查看与管理账号；岗位决定数据范围，应用入口权限请在“岗位与权限”中配置。</p></div>
-      <div className="page-heading-actions"><button type="button" className="primary-button" onClick={() => setDraft(empty)}>新增账号 <Icon name="arrow" /></button><button type="button" className="text-action" onClick={() => void refresh()}>刷新列表</button></div>
+      <div className="page-heading-actions"><button type="button" className="primary-button" onClick={() => setDraft({ ...empty, password: 'Vigor@2026' })}>新增账号 <Icon name="arrow" /></button><button type="button" className="text-action" onClick={() => { void refresh(); void refreshOrg() }}>刷新列表</button></div>
     </div>
     {notice && <p className="account-feedback" role="status">{notice}</p>}
 
@@ -376,10 +401,35 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
         <div className="org-modal-fields">
           <label>账号<input required value={draft.username} onChange={e => setDraft({ ...draft, username: e.target.value })} placeholder="例如：judy" /></label>
           <label>姓名<input required value={draft.displayName} onChange={e => setDraft({ ...draft, displayName: e.target.value })} placeholder="员工姓名" /></label>
-          <label>岗位<select value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>{Object.entries(roles).map(([id, item]) => <option value={id} key={id}>{item.label}</option>)}</select></label>
-          <label>销售小组 ID<input value={draft.teamId ?? ''} onChange={e => setDraft({ ...draft, teamId: e.target.value })} placeholder="例如：sales-v1" /></label>
-          <label>销售小组名称<input value={draft.teamName ?? ''} onChange={e => setDraft({ ...draft, teamName: e.target.value })} placeholder="例如：V1(飓风之眼)" /></label>
-          <label>密码{draft.id ? '（留空则不修改）' : ''}<input required={!draft.id} minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e => setDraft({ ...draft, password: e.target.value })} /></label>
+          <label>部门<select required value={draft.department ?? ''} onChange={e => setDraft({ ...draft, department: e.target.value, teamName: '', addingTeam: false, newTeam: '' })}>
+            <option value="" disabled>请选择部门</option>
+            {orgDepts.map(d => <option key={d.department} value={d.department}>{d.department}</option>)}
+          </select></label>
+          {draft.department && <label>销售小组{draft.addingTeam ? (
+            <span className="org-modal-inline-add"><input autoFocus required value={draft.newTeam ?? ''} onChange={e => setDraft({ ...draft, newTeam: e.target.value })} placeholder="小组名称，如 V6(新星组)" /><button type="button" onClick={() => void addTeam()}>添加</button><button type="button" onClick={() => setDraft({ ...draft, addingTeam: false, newTeam: '' })}>取消</button></span>
+          ) : (
+            <select value={draft.teamName ?? ''} onChange={e => {
+              if (e.target.value === '__new__') setDraft({ ...draft, addingTeam: true, newTeam: '' })
+              else setDraft({ ...draft, teamName: e.target.value })
+            }}>
+              <option value="">暂不分组</option>
+              {teamsOf(draft.department).map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="__new__">＋ 新增小组…</option>
+            </select>
+          )}</label>}
+          <label>岗位{draft.addingRole ? (
+            <span className="org-modal-inline-add"><input autoFocus required value={draft.role ?? ''} onChange={e => setDraft({ ...draft, role: e.target.value })} placeholder="新岗位名称，如 培训专员" /><button type="button" onClick={() => setDraft({ ...draft, addingRole: false })}>确定</button><button type="button" onClick={() => setDraft({ ...draft, addingRole: false, role: draft.prevRole || 'salesperson' })}>取消</button></span>
+          ) : (
+            <select required value={roleOptions.some(o => o.value === draft.role) ? draft.role : ''} onChange={e => {
+              if (e.target.value === '__new_role__') setDraft({ ...draft, addingRole: true, role: '', prevRole: draft.role })
+              else setDraft({ ...draft, role: e.target.value })
+            }}>
+              <option value="" disabled>请选择岗位</option>
+              {roleOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="__new_role__">＋ 新增岗位…</option>
+            </select>
+          )}</label>
+          <label>密码{draft.id ? '（留空则不修改）' : ''}<input minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e => setDraft({ ...draft, password: e.target.value })} placeholder={draft.id ? '留空保持原密码' : '默认 Vigor@2026'} /></label>
           <div className="org-modal-checks">
             <label><input type="checkbox" checked={draft.isAdmin} onChange={e => setDraft({ ...draft, isAdmin: e.target.checked })} /> 管理员</label>
             <label><input type="checkbox" checked={draft.disabled} onChange={e => setDraft({ ...draft, disabled: e.target.checked })} /> 停用账号</label>
