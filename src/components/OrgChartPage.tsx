@@ -18,7 +18,7 @@ const DEPT_COLORS: Record<string, string> = {
 }
 
 // 组织架构图（竖向）：根节点=总经理 → 部门区块（负责人头像 + 强调色）→ 团队分组 → 人员
-export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean } }) {
+export function OrgChartPage() {
   const [tree, setTree] = useState<OrgDeptNode[]>([])
   const [error, setError] = useState('')
 
@@ -36,10 +36,6 @@ export function OrgChartPage({ currentUser }: { currentUser: { isAdmin?: boolean
     const office = tree.find(d => d.department === '总经理办公室')
     return (office?.teams[0]?.persons ?? []).find(p => p.role.includes('总经理') && !p.role.includes('副总'))
   }, [tree])
-
-  if (currentUser.isAdmin !== true) {
-    return <section className="page"><div className="state-card"><Icon name="lock" size={28} /><h2>仅管理员可查看组织架构</h2></div></section>
-  }
 
   const headsOf = (d: OrgDeptNode) => {
     const heads: OrgPerson[] = []
