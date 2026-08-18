@@ -17,6 +17,18 @@ export function OrgPickerPage() {
   const [tab, setTab] = useState<'group' | 'flat'>('group')
   const [error, setError] = useState('')
 
+  // 弹窗窗口居中：脚本打开的独立窗口允许 moveTo/resizeTo，浏览器禁止时静默忽略
+  useEffect(() => {
+    try {
+      const w = window.outerWidth || document.documentElement.clientWidth || 420
+      const h = window.outerHeight || document.documentElement.clientHeight || 560
+      const left = Math.max(0, Math.round((window.screen.availWidth - w) / 2))
+      const top = Math.max(0, Math.round((window.screen.availHeight - h) / 2))
+      if (window.opener) { try { window.resizeTo(420, 560) } catch { /* ignore */ } }
+      if (typeof window.moveTo === 'function') window.moveTo(left, top)
+    } catch { /* 浏览器可能禁止移动窗口位置 */ }
+  }, [])
+
   useEffect(() => {
     fetch('/api/org/tree', { credentials: 'include', headers: token ? { 'X-Picker-Token': token } : {} })
       .then(resp => { if (!resp.ok) throw new Error(token ? '选择器令牌无效或已过期，请检查 token。' : '未登录：请携带 ?token=… 访问本页，或先登录工作台。'); return resp.json() as Promise<OrgDept[]> })
