@@ -190,7 +190,6 @@ export class OrgService implements OnModuleInit {
   async addPerson(input: OrgPersonInput): Promise<PublicOrgPerson> {
     const { department, team, role, name, englishName } = input
     if (!department?.trim() || !team?.trim() || !role?.trim() || !name?.trim() || !englishName?.trim()) throw new Error('部门、二级部门、角色、姓名、英文名均必填。')
-    if (!VALID_ROLE_LABELS.has(role.trim())) throw new Error('角色必须为有效岗位（与账号权限一致）。')
     const d = this.data.departments.find(x => x.name === department.trim())
     if (!d) throw new Error('部门不存在，请先创建部门。')
     let t = d.teams.find(x => x.name === team.trim())
@@ -219,6 +218,21 @@ export class OrgService implements OnModuleInit {
     await this.persist()
     return this.toPublic(f.p, f.d, f.t)
   }
+  // 账号变更后自动同步组织人员：按 username 匹配（组织人员 id = 账号 username）
+  async syncPersonFromAccount(input: { id: string; name?: string; role?: string; department?: string; team?: string }): Promise<{ ok: true }> {
+    const dept = input.department?.trim()
+    const team = input.team?.trim()
+    const role = input.role?.trim()
+    const f = this.findPerson(input.id)
+    if (f) {
+      try { await this.updatePerson(input.id, { department: dept || f.d.name, team: team || f.t.name, role, name: input.name }) } catch { /* 目标部门不存在等则忽略 */ }
+      return { ok: true }
+    }
+    if (!dept || !team || !input.name) return { ok: true }
+    try { await this.addPerson({ department: dept, team, role: role || '成员', name: input.name, englishName: input.id }) } catch { /* 部门/小组不存在则跳过 */ }
+    return { ok: true }
+  }
+
   async deletePerson(id: string): Promise<{ ok: true }> {
     const f = this.findPerson(id); if (!f) throw new Error('人员不存在。')
     f.t.persons = f.t.persons.filter(x => x !== f.p)

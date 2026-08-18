@@ -81,19 +81,26 @@ export class AppController {
   @Put('admin/users/:id')
   async saveUser(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Param('id') id: string, @Body() body?: { username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string; departmentHead?: boolean }) {
     await this.admin(cookie, authorization)
-    return this.auth.saveUser({ ...body, id, role: body?.role as any }).catch(error => { throw new BadRequestException(error.message) })
+    const saved = await this.auth.saveUser({ ...body, id, role: body?.role as any }).catch(error => { throw new BadRequestException(error.message) })
+    await this.org.syncPersonFromAccount({ id: saved.username, name: saved.displayName, role: saved.role, department: saved.department, team: saved.teamName }).catch(() => {})
+    return saved
   }
 
   @Post('admin/users')
   async createUser(@Headers('cookie') cookie: string | undefined, @Headers('authorization') authorization: string | undefined, @Body() body?: { username?: string; displayName?: string; role?: string; isAdmin?: boolean; password?: string; disabled?: boolean; teamId?: string; teamName?: string; department?: string; departmentHead?: boolean }) {
     await this.admin(cookie, authorization)
-    return this.auth.saveUser({ ...body, role: body?.role as any }).catch(error => { throw new BadRequestException(error.message) })
+    const created = await this.auth.saveUser({ ...body, role: body?.role as any }).catch(error => { throw new BadRequestException(error.message) })
+    await this.org.syncPersonFromAccount({ id: created.username, name: created.displayName, role: created.role, department: created.department, team: created.teamName }).catch(() => {})
+    return created
   }
 
   @Delete('admin/users/:id')
   async deleteUser(@Param('id') id: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) {
     await this.admin(cookie, authorization)
-    return this.auth.deleteUser(id).catch(error => { throw new BadRequestException(error.message) })
+    const target = (await this.auth.listUsers()).find(item => item.id === id)
+    const result = await this.auth.deleteUser(id).catch(error => { throw new BadRequestException(error.message) })
+    if (target) await this.org.deletePerson(target.username).catch(() => {})
+    return result
   }
 
   @Post('auth/change-password')
