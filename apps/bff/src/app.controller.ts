@@ -203,6 +203,7 @@ export class AppController {
   @Put('account-fields')
   async saveAccountFields(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: {
     departments?: string[]; teams?: Record<string, string[]>; customRoles?: string[]; headRoles?: Record<string, string>;
+    roleLabels?: Record<string, string>; disabledRoles?: string[];
     renames?: { type: 'department' | 'team' | 'role'; from: string; to: string; department?: string }[];
   }) {
     await this.admin(cookie, authorization)
@@ -222,7 +223,7 @@ export class AppController {
     for (const d of current.departments) if (!departments.includes(d)) { const n = await this.auth.countDepartmentUsers(d); if (n > 0) throw new BadRequestException(`仍有 ${n} 个账号属于部门「${d}」，无法删除该选项。`) }
     for (const [dept, list] of Object.entries(current.teams)) for (const t of list) if (!(teams[dept] ?? []).includes(t)) { const n = await this.auth.countTeamUsers(dept, t); if (n > 0) throw new BadRequestException(`仍有 ${n} 个账号属于小组「${t}」，无法删除该选项。`) }
     for (const r of current.customRoles) if (!customRoles.includes(r)) { const n = await this.auth.countRoleUsers(r); if (n > 0) throw new BadRequestException(`岗位「${r}」正在被 ${n} 个账号使用，无法删除。`) }
-    return this.accountFields.save({ departments, teams, customRoles, headRoles }).catch(error => { throw new BadRequestException(error.message) })
+    return this.accountFields.save({ departments, teams, customRoles, headRoles, roleLabels: body?.roleLabels, disabledRoles: body?.disabledRoles }).catch(error => { throw new BadRequestException(error.message) })
   }
 
   @Post('account-fields/teams')

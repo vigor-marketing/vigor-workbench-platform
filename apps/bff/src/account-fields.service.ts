@@ -10,6 +10,8 @@ export type AccountFields = {
   teams: Record<string, string[]>
   customRoles: string[]
   headRoles: Record<string, string>
+  roleLabels: Record<string, string>
+  disabledRoles: string[]
 }
 
 const DEFAULT_DEPARTMENTS = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
@@ -50,7 +52,7 @@ export class AccountFieldsService {
     try {
       const stored = JSON.parse(await readFile(config.accountFieldsFile, 'utf8'))
       if (stored && Array.isArray(stored.departments)) {
-        this.cache = { version: 1, departments: stored.departments, teams: stored.teams ?? {}, customRoles: stored.customRoles ?? [], headRoles: stored.headRoles ?? {} }
+        this.cache = { version: 1, departments: stored.departments, teams: stored.teams ?? {}, customRoles: stored.customRoles ?? [], headRoles: stored.headRoles ?? {}, roleLabels: stored.roleLabels ?? {}, disabledRoles: stored.disabledRoles ?? [] }
         return this.cache
       }
     } catch { /* 首次运行 */ }
@@ -77,7 +79,7 @@ export class AccountFieldsService {
         }
       }
     } catch { /* org 不可用时用默认 */ }
-    return { version: 1, departments, teams, customRoles, headRoles: { ...DEFAULT_HEAD_ROLES } }
+    return { version: 1, departments, teams, customRoles, headRoles: { ...DEFAULT_HEAD_ROLES }, roleLabels: {}, disabledRoles: [] }
   }
 
   private async persist() {
@@ -88,7 +90,7 @@ export class AccountFieldsService {
 
   async get(): Promise<AccountFields> { return this.load() }
 
-  async save(input: { departments?: string[]; teams?: Record<string, string[]>; customRoles?: string[]; headRoles?: Record<string, string> }): Promise<AccountFields> {
+  async save(input: { departments?: string[]; teams?: Record<string, string[]>; customRoles?: string[]; headRoles?: Record<string, string>; roleLabels?: Record<string, string>; disabledRoles?: string[] }): Promise<AccountFields> {
     const current = await this.load()
     const departments = (input.departments ?? current.departments).map(x => String(x).trim()).filter(Boolean)
     if (!departments.length) throw new Error('至少需要一个部门选项。')
@@ -107,7 +109,13 @@ export class AccountFieldsService {
       const role = (input.headRoles?.[dept] ?? current.headRoles?.[dept] ?? '').trim()
       if (role) headRoles[dept] = role
     }
-    this.cache = { version: 1, departments, teams, customRoles, headRoles }
+    const roleLabels: Record<string, string> = {}
+    for (const [id, label] of Object.entries(input.roleLabels ?? current.roleLabels ?? {})) {
+      const l = String(label).trim()
+      if (l) roleLabels[id] = l
+    }
+    const disabledRoles = [...new Set((input.disabledRoles ?? current.disabledRoles ?? []).map(x => String(x).trim()).filter(Boolean))]
+    this.cache = { version: 1, departments, teams, customRoles, headRoles, roleLabels, disabledRoles }
     await this.persist()
     return this.cache
   }

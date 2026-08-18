@@ -348,7 +348,16 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
     '船务经理': '船务部', '船务操作员': '船务部', '财务经理': '财务部', '会计': '财务部',
   }
   const DEPT_ORDER = ['总经理办公室', '人力总经办', '销售部', '采购部', '销售支持组', '市场运营组', '船务部', '财务部']
-  const deptOf = (user: any) => user.department || ROLE_DEPT[roles[user.role as Role]?.label ?? user.role] || '其他'
+  const roleLabelOf = (role: string) => accountFields?.roleLabels?.[role] ?? roles[role as Role]?.label ?? role
+  const ROLE_DEPT_ID: Record<string, string> = {
+    general_manager: '总经理办公室', sales_vp: '总经理办公室', finance_vp: '总经理办公室',
+    hr_director: '人力总经办', admin_specialist: '人力总经办',
+    sales_manager: '销售部', sales_team_lead: '销售部', salesperson: '销售部', project_coordinator: '销售部',
+    procurement_manager: '采购部', procurement_team_lead: '采购部', purchaser: '采购部', quality_team: '采购部',
+    sales_support: '销售支持组', market_team: '市场运营组',
+    shipping_manager: '船务部', shipping_operator: '船务部', finance_manager: '财务部', accountant: '财务部',
+  }
+  const deptOf = (user: any) => user.department || ROLE_DEPT[roleLabelOf(user.role)] || ROLE_DEPT_ID[user.role] || '其他'
   // 部门主管 = 该部门最高岗位（岗位与部门联动）
   const DEFAULT_HEAD_ROLE: Record<string, string> = {
     '总经理办公室': 'general_manager', '人力总经办': 'hr_director',
@@ -363,7 +372,8 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
 
   // 岗位下拉：内置岗位 + 账号中已出现的自定义岗位 + “新增岗位…”
   const roleOptions = useMemo(() => {
-    const builtin = Object.entries(roles).map(([id, item]) => ({ value: id, label: item.label }))
+    const disabled = new Set(accountFields?.disabledRoles ?? [])
+    const builtin = Object.entries(roles).filter(([id]) => !disabled.has(id)).map(([id, item]) => ({ value: id, label: accountFields?.roleLabels?.[id] ?? item.label }))
     const fromUsers = [...new Set(users.map(u => String(u.role || '').trim()).filter(r => r && !roles[r as Role]))]
     const custom = [...new Set([...(accountFields?.customRoles ?? []), ...fromUsers])].map(r => ({ value: r, label: r }))
     return [...builtin, ...custom]
@@ -378,7 +388,7 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
   }, [roleOptions, draft])
 
   const renderCard = (user: any) => {
-    const roleLabel = roles[user.role as Role]?.label ?? user.role
+    const roleLabel = roleLabelOf(user.role)
     return <div className={'account-card' + (draft?.id === user.id ? ' editing' : '')} key={user.id}>
       <span className="account-directory-mark">{user.displayName.slice(0, 1)}</span>
       <div className="account-card-main">
@@ -480,10 +490,10 @@ function PermissionAdminPage({ currentUser }: { currentUser: DemoUser }) {
           <label>密码{draft.id ? '（留空则不修改）' : ''}<input minLength={8} autoComplete="new-password" type="password" value={draft.password ?? ''} onChange={e => setDraft({ ...draft, password: e.target.value })} placeholder={draft.id ? '留空保持原密码' : '默认 Vigor@2026'} /></label>
           <div className="org-modal-checks">
             <label><input type="checkbox" checked={draft.isAdmin} onChange={e => setDraft({ ...draft, isAdmin: e.target.checked })} /> 管理员</label>
-            <label><input type="checkbox" checked={draft.departmentHead} disabled={!isHeadRole(draft.department, draft.role)} title={isHeadRole(draft.department, draft.role) ? '该岗位为该部门最高职位' : '仅该部门最高岗位（' + (headRoleOf(draft.department) ? (roles[headRoleOf(draft.department) as Role]?.label ?? headRoleOf(draft.department)) : '—') + '）可设为主管'} onChange={e => setDraft({ ...draft, departmentHead: e.target.checked })} /> 部门主管</label>
+            <label><input type="checkbox" checked={draft.departmentHead} disabled={!isHeadRole(draft.department, draft.role)} title={isHeadRole(draft.department, draft.role) ? '该岗位为该部门最高职位' : '仅该部门最高岗位（' + (headRoleOf(draft.department) ? roleLabelOf(headRoleOf(draft.department)) : '—') + '）可设为主管'} onChange={e => setDraft({ ...draft, departmentHead: e.target.checked })} /> 部门主管</label>
             <label><input type="checkbox" checked={draft.disabled} onChange={e => setDraft({ ...draft, disabled: e.target.checked })} /> 停用账号</label>
           </div>
-          {draft.department && !isHeadRole(draft.department, draft.role) && <p className="org-modal-hint">部门主管需选择该部门最高岗位（{headRoleOf(draft.department) ? (roles[headRoleOf(draft.department) as Role]?.label ?? headRoleOf(draft.department)) : '—'}）后勾选。</p>}
+          {draft.department && !isHeadRole(draft.department, draft.role) && <p className="org-modal-hint">部门主管需选择该部门最高岗位（{headRoleOf(draft.department) ? roleLabelOf(headRoleOf(draft.department)) : '—'}）后勾选。</p>}
         </div>
         <div className="org-modal-actions">
           <button type="submit" className="primary-button">{draft.id ? '保存账号变更' : '创建账号'}</button>

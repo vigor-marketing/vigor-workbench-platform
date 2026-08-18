@@ -68,6 +68,8 @@ export type AccountFields = {
   teams: Record<string, string[]>
   customRoles: string[]
   headRoles: Record<string, string>
+  roleLabels: Record<string, string>
+  disabledRoles: string[]
 }
 
 export async function getAccountFields(): Promise<AccountFields> { return request('account-fields') }

@@ -23,13 +23,15 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
   const [newTeam, setNewTeam] = useState('')
   const [newRole, setNewRole] = useState('')
   const [users, setUsers] = useState<any[]>([])
-  const [editing, setEditing] = useState<{ kind: 'dept' | 'team' | 'role'; from: string; department?: string } | null>(null)
+  const [roleLabels, setRoleLabels] = useState<Record<string, string>>({})
+  const [disabledRoles, setDisabledRoles] = useState<string[]>([])
+  const [editing, setEditing] = useState<{ kind: 'dept' | 'team' | 'role' | 'roleLabel'; from: string; department?: string } | null>(null)
   const [editValue, setEditValue] = useState('')
 
   const load = async () => {
     try {
       const [f, u] = await Promise.all([getAccountFields(), getServerUsers().catch(() => [])])
-      setBase(f); setDepts(f.departments); setTeams(f.teams); setCustomRoles(f.customRoles); setHeads(f.headRoles)
+      setBase(f); setDepts(f.departments); setTeams(f.teams); setCustomRoles(f.customRoles); setHeads(f.headRoles); setRoleLabels(f.roleLabels ?? {}); setDisabledRoles(f.disabledRoles ?? [])
       setUsers(u as any[])
       setDeptForTeams(f.departments[0] ?? '')
       setRenames([]); setDirty({ depts: false, teams: false, roles: false, heads: false })
@@ -38,7 +40,7 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
   useEffect(() => { void load() }, [])
 
   const builtinRoles = Object.entries(roles)
-  const allRoleOptions = [...builtinRoles.map(([id, item]) => ({ value: id, label: item.label })), ...customRoles.map(r => ({ value: r, label: r }))]
+  const allRoleOptions = [...builtinRoles.filter(([id]) => !disabledRoles.includes(id)).map(([id, item]) => ({ value: id, label: roleLabels[id] ?? item.label })), ...customRoles.map(r => ({ value: r, label: r }))]
   const accent = (dept: string) => DEPT_COLORS[dept] || '#15202c'
   const touch = (k: View) => { setSuccess(''); setDirty(d => ({ ...d, [k]: true })) }
 
@@ -48,7 +50,7 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     if (!base) return
     const tableRenames = renamesOf(k)
     try {
-      await saveAccountFields({ departments: depts, teams, customRoles, headRoles: heads, renames: tableRenames })
+      await saveAccountFields({ departments: depts, teams, customRoles, headRoles: heads, roleLabels, disabledRoles, renames: tableRenames })
       setSuccess(k === 'depts' ? '部门选项已保存。' : k === 'teams' ? '小组选项已保存。' : k === 'roles' ? '岗位选项已保存。' : '主管规则已保存。')
       setError('')
       setRenames([]); setDirty({ depts: false, teams: false, roles: false, heads: false })
@@ -60,7 +62,7 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     if (!base) return
     if (k === 'depts') { setDepts(base.departments); setRenames(renames.filter(r => r.type !== 'department')) }
     else if (k === 'teams') { setTeams(base.teams); setRenames(renames.filter(r => r.type !== 'team')) }
-    else if (k === 'roles') { setCustomRoles(base.customRoles); setRenames(renames.filter(r => r.type !== 'role')) }
+    else if (k === 'roles') { setCustomRoles(base.customRoles); setRoleLabels(base.roleLabels ?? {}); setDisabledRoles(base.disabledRoles ?? []); setRenames(renames.filter(r => r.type !== 'role')) }
     else { setHeads(base.headRoles) }
     setDirty(d => ({ ...d, [k]: false }))
   }
@@ -105,7 +107,8 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     if (!to || to === editing.from) return
     if (editing.kind === 'dept') renameDeptTo(editing.from, to)
     else if (editing.kind === 'team') renameTeamTo(editing.department ?? '', editing.from, to)
-    else renameRoleTo(editing.from, to)
+    else if (editing.kind === 'role') renameRoleTo(editing.from, to)
+    else { setRoleLabels({ ...roleLabels, [editing.from]: to }); touch('roles') }
   }
   const removeRole = (name: string) => {
     const usage = roleUsage(name)
@@ -205,13 +208,23 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
           <button type="submit" className="primary-button">添加岗位</button>
         </form>
         <div className="org-manage-list">
-          {builtinRoles.map(([id, item]) => (
-            <div className="org-manage-row" key={id}>
-              <span className="org-manage-mark" style={{ background: '#15202c' }}>{item.label.slice(0, 1)}</span>
-              <span className="org-manage-name"><b>{item.label}</b><small>系统内置岗位</small></span>
-              <span className="org-manage-actions" />
+          {builtinRoles.map(([id, item]) => {
+            const label = roleLabels[id] ?? item.label
+            const usage = roleUsage(id)
+            const disabled = disabledRoles.includes(id)
+            return <div className="org-manage-row" key={id}>
+              <span className="org-manage-mark" style={{ background: '#15202c' }}>{label.slice(0, 1)}</span>
+              {editing?.kind === 'roleLabel' && editing.from === id
+                ? <span className="org-manage-edit"><input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(null) }} /><button type="button" onClick={() => commitRename()}>保存</button><button type="button" onClick={() => setEditing(null)}>取消</button></span>
+                : <span className="org-manage-name"><b>{label}</b><small>系统内置岗位 · {usage} 个账号{disabled ? ' · 已从选项移除' : ''}</small></span>}
+              <span className="org-manage-actions">
+                <button type="button" onClick={() => { setEditing({ kind: 'roleLabel', from: id }); setEditValue(label) }}>重命名</button>
+                {disabled
+                  ? <button type="button" onClick={() => { setDisabledRoles(disabledRoles.filter(x => x !== id)); touch('roles') }}>恢复</button>
+                  : <button type="button" className="danger" onClick={() => { if (usage > 0 && !window.confirm(`岗位「${label}」正在被 ${usage} 个账号使用，移除后将无法再分配给新账号（已有账号不受影响）。确认移除？`)) return; setDisabledRoles([...disabledRoles, id]); touch('roles') }}>删除</button>}
+              </span>
             </div>
-          ))}
+          })}
           {displayCustomRoles.map(r => {
             const usage = roleUsage(r)
             const inConfig = customRoles.includes(r)
