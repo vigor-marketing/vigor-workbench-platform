@@ -4,6 +4,7 @@ import { Link, NavLink, Route, Routes, useLocation, useParams } from 'react-rout
 import { Icon } from './components/Icon'
 import { SalesManagementPage } from './components/SalesManagementPage'
 import { OrgPickerPage } from './components/OrgPickerPage'
+import { GlobalSearch } from './components/GlobalSearch'
 import { OrgChartPage } from './components/OrgChartPage'
 import { AccountFieldsPage } from './components/AccountFieldsPage'
 import { appUrl, apps, departments, DEPT_COLORS, initialTodos, roles, type AppDefinition, type Department, type Role, type Todo } from './data/workbench'
@@ -134,6 +135,7 @@ function Layout() {
       <header className="topbar">
         <div className="topbar-leading"><button className="navigation-toggle" type="button" aria-label={sidebarOpen ? '关闭主导航' : sidebarPinned ? '取消固定侧边栏' : '固定侧边栏'} aria-expanded={sidebarOpen || !sidebarCollapsed} aria-controls="workspace-sidebar" onClick={toggleNav}><span /><span /><span /></button><div className="crumb"><span>VIGOR</span><b>/</b><span>统一办公平台</span></div></div>
         <div className="top-actions">
+          <GlobalSearch todos={todos} permissions={permissions} role={role} isAdmin={!!session?.isAdmin} />
           <div className="notification-wrap">
             <button className={`icon-button notification ${hasNewNotifications ? 'has-new' : ''}`} type="button" aria-label={`通知：${pendingNotifications.length} 项未读`} aria-expanded={notificationOpen} aria-controls="notification-panel" onClick={() => { setNotificationOpen(open => !open); setHasNewNotifications(false) }}>
               <Icon name="bell" />
