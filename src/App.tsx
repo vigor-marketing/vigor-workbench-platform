@@ -25,24 +25,28 @@ function Layout() {
   const [todoSource, setTodoSource] = useState<'api' | 'demo'>('demo')
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => { try { const v = localStorage.getItem('vigor.sidebar.collapsed'); return v === null ? true : v === '1' } catch { return true } })
+  const [sidebarHover, setSidebarHover] = useState(false)
+  const [sidebarPinned, setSidebarPinned] = useState(false)
+  const sidebarTimer = useRef<number | undefined>(undefined)
   const location = useLocation()
-  const autoExpandedRef = useRef(false)
+  const isDesktopView = () => window.matchMedia('(min-width: 961px)').matches
   const toggleNav = () => {
-    if (window.matchMedia('(max-width: 960px)').matches) {
-      setSidebarOpen(open => !open)
-    } else {
-      setSidebarCollapsed(collapsed => { const next = !collapsed; try { localStorage.setItem('vigor.sidebar.collapsed', next ? '1' : '0') } catch {}; return next })
-    }
+    if (!isDesktopView()) { setSidebarOpen(open => !open); return }
+    // 桌面端：点击汉堡按钮固定/取消固定侧边栏；默认由悬停控制展开
+    setSidebarPinned(pinned => !pinned)
+    setSidebarHover(true)
   }
-
-  // 折叠态点击导航项：自动展开 → 跳转 → 跳转后延时折叠回
-  useEffect(() => {
-    if (!autoExpandedRef.current) return
-    autoExpandedRef.current = false
-    const timer = window.setTimeout(() => setSidebarCollapsed(true), 600)
-    return () => window.clearTimeout(timer)
-  }, [location.pathname])
+  const enterSidebar = () => {
+    if (!isDesktopView()) return
+    if (sidebarTimer.current !== undefined) window.clearTimeout(sidebarTimer.current)
+    setSidebarHover(true)
+  }
+  const leaveSidebar = () => {
+    if (!isDesktopView()) return
+    if (sidebarTimer.current !== undefined) window.clearTimeout(sidebarTimer.current)
+    sidebarTimer.current = window.setTimeout(() => setSidebarHover(false), 250)
+  }
+  const sidebarCollapsed = isDesktopView() ? !(sidebarHover || sidebarPinned) : false
   const [hasNewNotifications, setHasNewNotifications] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const previousPendingIdsRef = useRef<Set<string> | null>(null)
@@ -105,7 +109,7 @@ function Layout() {
   if (!session) return <LoginPage onLogin={login} />
 
   return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-    <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onClick={event => { const link = (event.target as HTMLElement).closest('a'); if (!link) return; setSidebarOpen(false); if (window.matchMedia('(min-width: 961px)').matches && sidebarCollapsed) { setSidebarCollapsed(false); autoExpandedRef.current = true } }}>
+    <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onMouseEnter={enterSidebar} onMouseLeave={leaveSidebar} onClick={event => { if ((event.target as HTMLElement).closest('a')) setSidebarOpen(false) }}>
       <Link className="brand" to="/" aria-label="返回工作台首页"><span className="brand-mark">V</span><span>Vigor<br /><small>WORKBENCH</small></span></Link>
       <nav className="primary-nav" aria-label="主导航">
         <NavLink end to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} data-label="工作总览"><Icon name="grid" /><span className="nav-label">工作总览</span></NavLink>
@@ -118,12 +122,12 @@ function Layout() {
           {apps.filter(app => app.department === department && isAllowed(permissions, role, app)).map(app => <NavLink key={app.id} to={`/workspace/apps/${app.id}`} className={({ isActive }) => `app-nav ${isActive ? 'active' : ''}`} data-label={app.name}><i>{app.shortName.slice(0, 1)}</i><span className="app-label">{app.name}</span></NavLink>)}
         </div>)}
       </div>
-      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="settings" /><span className="nav-label">个人账号</span></Link><Link to="/admin/org-chart" className="nav-item" data-label="组织架构"><Icon name="grid" /><span className="nav-label">组织架构</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="shield" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="岗位与权限"><Icon name="shield" /><span className="nav-label">岗位与权限</span></Link><Link to="/admin/api-services" className="nav-item" data-label="服务与授权"><Icon name="shield" /><span className="nav-label">服务与授权</span></Link><Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="settings" /><span className="nav-label">接入设置</span></Link></>}<p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
+      <div className="sidebar-bottom"><Link to="/account" className="nav-item" data-label="个人账号"><Icon name="user" /><span className="nav-label">个人账号</span></Link><Link to="/admin/org-chart" className="nav-item" data-label="组织架构"><Icon name="org" /><span className="nav-label">组织架构</span></Link>{session.isAdmin && <><Link to="/admin/permissions" className="nav-item" data-label="账号与权限"><Icon name="users" /><span className="nav-label">账号与权限</span></Link><Link to="/admin/app-permissions" className="nav-item" data-label="岗位与权限"><Icon name="user-check" /><span className="nav-label">岗位与权限</span></Link><Link to="/admin/api-services" className="nav-item" data-label="服务与授权"><Icon name="key" /><span className="nav-label">服务与授权</span></Link><Link to="/settings" className="nav-item" data-label="接入设置"><Icon name="sliders" /><span className="nav-label">接入设置</span></Link></>}<p>平台版本 0.2<br />{todoSource === 'api' ? 'BFF 待办已连接' : '演示数据环境'}</p></div>
     </aside>
     <button className="sidebar-backdrop" type="button" aria-label="关闭导航" tabIndex={sidebarOpen ? 0 : -1} onClick={() => setSidebarOpen(false)} />
     <main className="main-content">
       <header className="topbar">
-        <div className="topbar-leading"><button className="navigation-toggle" type="button" aria-label={sidebarOpen ? '关闭主导航' : sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'} aria-expanded={sidebarOpen || !sidebarCollapsed} aria-controls="workspace-sidebar" onClick={toggleNav}><span /><span /><span /></button><div className="crumb"><span>VIGOR</span><b>/</b><span>统一办公平台</span></div></div>
+        <div className="topbar-leading"><button className="navigation-toggle" type="button" aria-label={sidebarOpen ? '关闭主导航' : sidebarPinned ? '取消固定侧边栏' : '固定侧边栏'} aria-expanded={sidebarOpen || !sidebarCollapsed} aria-controls="workspace-sidebar" onClick={toggleNav}><span /><span /><span /></button><div className="crumb"><span>VIGOR</span><b>/</b><span>统一办公平台</span></div></div>
         <div className="top-actions">
           <button className="icon-button" aria-label="搜索"><Icon name="search" /></button>
           <div className="notification-wrap">
