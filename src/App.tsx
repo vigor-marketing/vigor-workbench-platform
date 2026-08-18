@@ -35,15 +35,20 @@ function Layout() {
     // 桌面端：点击汉堡按钮固定/取消固定侧边栏；默认由悬停控制展开
     setSidebarPinned(pinned => !pinned)
   }
+  const lastEnterRef = useRef(0)
   const enterSidebar = () => {
     if (!isDesktopView()) return
     if (sidebarTimer.current !== undefined) window.clearTimeout(sidebarTimer.current)
+    lastEnterRef.current = Date.now()
     setSidebarHover(true)
   }
   const leaveSidebar = () => {
     if (!isDesktopView()) return
     if (sidebarTimer.current !== undefined) window.clearTimeout(sidebarTimer.current)
-    sidebarTimer.current = window.setTimeout(() => setSidebarHover(false), 250)
+    // 展开后 400ms 内不折叠，且折叠延迟 700ms：避免鼠标在侧边栏边缘小幅移动造成菜单反复展开/折叠闪烁
+    const elapsed = Date.now() - lastEnterRef.current
+    const delay = elapsed < 400 ? 900 : 700
+    sidebarTimer.current = window.setTimeout(() => setSidebarHover(false), delay)
   }
   const sidebarCollapsed = isDesktopView() ? !(sidebarHover || sidebarPinned) : false
   const [hasNewNotifications, setHasNewNotifications] = useState(false)
