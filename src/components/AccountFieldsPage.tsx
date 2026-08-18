@@ -73,7 +73,11 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     setHeads(prev => { const n = { ...prev }; if (n[from]) { n[to] = n[from]; delete n[from] } return n })
     setRenames([...renames, { type: 'department', from, to }]); touch('depts')
   }
+  const deptUsage = (name: string) => users.filter(u => u.department === name).length
+  const teamUsage = (dept: string, team: string) => users.filter(u => u.department === dept && u.teamName === team).length
   const removeDept = (name: string) => {
+    const usage = deptUsage(name)
+    if (usage > 0) { setSuccess(''); setError(`部门「${name}」下仍有 ${usage} 个账号，无法删除，请先在账号与权限中调整。`); return }
     if (!window.confirm(`从账号字段中移除部门「${name}」？`)) return
     setDepts(depts.filter(d => d !== name))
     setTeams(prev => { const n = { ...prev }; delete n[name]; return n })
@@ -86,7 +90,12 @@ export function AccountFieldsPage({ onSaved }: { onSaved?: () => void }) {
     setTeams({ ...teams, [dept]: (teams[dept] ?? []).map(t => t === from ? to : t) })
     setRenames([...renames, { type: 'team', department: dept, from, to }]); touch('teams')
   }
-  const removeTeam = (dept: string, team: string) => { setTeams({ ...teams, [dept]: (teams[dept] ?? []).filter(t => t !== team) }); touch('teams') }
+  const removeTeam = (dept: string, team: string) => {
+    const usage = teamUsage(dept, team)
+    if (usage > 0) { setSuccess(''); setError(`小组「${team}」仍有 ${usage} 个账号，无法删除，请先在账号与权限中调整。`); return }
+    if (!window.confirm(`从账号字段中移除小组「${team}」？`)) return
+    setTeams({ ...teams, [dept]: (teams[dept] ?? []).filter(t => t !== team) }); touch('teams')
+  }
   const submitTeam = (event: FormEvent) => { event.preventDefault(); if (!newTeam.trim()) return; setTeams({ ...teams, [deptForTeams]: [...(teams[deptForTeams] ?? []), newTeam.trim()] }); setNewTeam(''); touch('teams') }
 
   const builtinIds = new Set(builtinRoles.map(([id]) => id))
