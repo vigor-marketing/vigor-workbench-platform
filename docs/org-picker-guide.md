@@ -39,7 +39,7 @@ function openOrgPicker({ mode = 'single', title = '选择人员' } = {}) {
     window.open(
       `${base}/org-picker?mode=${mode}&title=${encodeURIComponent(title)}&token=${token}`,
       'orgpicker',
-      'width=580,height=760',
+      'width=420,height=560',
     )
   })
 }

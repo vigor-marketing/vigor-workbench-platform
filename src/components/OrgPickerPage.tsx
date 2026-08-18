@@ -19,7 +19,7 @@ export function OrgPickerPage() {
 
   useEffect(() => {
     fetch('/api/org/tree', { credentials: 'include', headers: token ? { 'X-Picker-Token': token } : {} })
-      .then(resp => { if (!resp.ok) throw new Error('未登录或无权访问组织数据'); return resp.json() as Promise<OrgDept[]> })
+      .then(resp => { if (!resp.ok) throw new Error(token ? '选择器令牌无效或已过期，请检查 token。' : '未登录：请携带 ?token=… 访问本页，或先登录工作台。'); return resp.json() as Promise<OrgDept[]> })
       .then(setTree)
       .catch(err => setError(err instanceof Error ? err.message : '加载失败'))
   }, [token])

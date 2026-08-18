@@ -101,9 +101,8 @@ function Layout() {
   }, [sidebarOpen])
 
   if (!authReady) return <main className="login-page"><p>正在验证登录状态…</p></main>
-  if (location.pathname === '/org-picker' && new URLSearchParams(location.search).get('token')) return <OrgPickerPage />
-  if (!session) return <LoginPage onLogin={login} />
   if (location.pathname === '/org-picker') return <OrgPickerPage />
+  if (!session) return <LoginPage onLogin={login} />
 
   return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <aside id="workspace-sidebar" className="sidebar" aria-label="工作台导航" onClick={event => { const link = (event.target as HTMLElement).closest('a'); if (!link) return; setSidebarOpen(false); if (window.matchMedia('(min-width: 961px)').matches && sidebarCollapsed) { setSidebarCollapsed(false); autoExpandedRef.current = true } }}>
