@@ -34,6 +34,13 @@ const DEFAULT_HEAD_ROLES: Record<string, string> = {
   '财务部': 'finance_manager',
 }
 
+// 与组织架构一致的组排序：销售 V1–V5；采购 一组/二组/质量组
+const teamRank = (dept: string, team: string): number => {
+  if (dept === '销售部') { const m = team.match(/V(\d+)/); if (m) return Number(m[1]) }
+  if (dept === '采购部') { if (team.includes('一组') || team.includes('一单元')) return 1; if (team.includes('二组') || team.includes('二单元')) return 2; if (team.includes('质量')) return 3 }
+  return 99
+}
+
 @Injectable()
 export class AccountFieldsService {
   private cache: AccountFields | null = null
@@ -52,12 +59,6 @@ export class AccountFieldsService {
     return this.cache
   }
 
-  // 与组织架构一致的组排序：销售 V1–V5；采购 一组/二组/质量组
-  const teamRank = (dept: string, team: string): number => {
-    if (dept === '销售部') { const m = team.match(/V(\d+)/); if (m) return Number(m[1]) }
-    if (dept === '采购部') { if (team.includes('一组') || team.includes('一单元')) return 1; if (team.includes('二组') || team.includes('二单元')) return 2; if (team.includes('质量')) return 3 }
-    return 99
-  }
   private sortTeams(dept: string, teams: string[]): string[] {
     return [...teams].sort((a, b) => teamRank(dept, a) - teamRank(dept, b))
   }
