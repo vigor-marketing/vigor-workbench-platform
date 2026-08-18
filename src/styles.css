@@ -627,6 +627,32 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.025em; }
 .org-modal-actions .primary-button { border: 0; }
 .org-modal-actions button:not(.primary-button) { border: 1px solid #d8d9d4; background: #fff; color: #61798a; }
 .org-modal-actions button:not(.primary-button):hover { background: #f5f5f2; color: #1b2430; }
+/* 组织管理页 */
+.org-manage-section { max-width: 900px; }
+.org-manage-add { display: flex; gap: 10px; margin: 16px 0; }
+.org-manage-add input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid #cfd5d1; border-radius: 8px; background: #fff; font: inherit; font-size: 13px; }
+.org-manage-add input:focus { outline: 2px solid rgba(217, 45, 32, .25); border-color: #d92d20; }
+.org-manage-add .primary-button { border: 0; }
+.org-manage-dept-select { display: grid; gap: 6px; margin: 16px 0 0; color: #3d474e; font-size: 12px; font-weight: 700; }
+.org-manage-dept-select select { max-width: 280px; height: 38px; padding: 0 10px; border: 1px solid #cfd5d1; border-radius: 8px; background: #fff; font: inherit; font-size: 13px; color: #1b2430; }
+.org-manage-list { display: grid; gap: 8px; margin-top: 8px; }
+.org-manage-row { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e3e6e1; border-radius: 10px; padding: 10px 14px; }
+.org-manage-mark { width: 30px; height: 30px; border-radius: 8px; color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: 0 0 30px; }
+.org-manage-name { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.org-manage-name b { font-size: 14px; color: #1b2430; }
+.org-manage-name small { color: #8a97a1; font-size: 11px; }
+.org-manage-meta { display: flex; gap: 8px; }
+.org-manage-meta em { font-style: normal; font-size: 11px; color: #61798a; background: #f0f2ee; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.org-manage-actions { display: flex; gap: 6px; }
+.org-manage-actions button { border: 1px solid #e0e3df; background: #fff; border-radius: 7px; font-size: 11px; color: #61798a; padding: 5px 11px; white-space: nowrap; }
+.org-manage-actions button:hover { background: #f5f5f2; color: #1b2430; }
+.org-manage-actions button.danger:hover { background: #fff0ee; color: #a61b14; border-color: #f3c4bc; }
+.org-manage-edit { display: flex; gap: 6px; flex: 1; min-width: 0; align-items: center; }
+.org-manage-edit input { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid #cfd5d1; border-radius: 7px; font: inherit; font-size: 13px; }
+.org-manage-edit button { border: 1px solid #d8d9d4; background: #fff; border-radius: 7px; font-size: 11px; color: #61798a; padding: 5px 11px; white-space: nowrap; }
+.org-manage-edit button:first-of-type { border-color: #111315; background: #111315; color: #fff; }
+.account-feedback.success { border-color: #b7e0c4; background: #edf7ef; color: #24643b; }
+
 .account-card-badges em.head { background: #fdf3dc; color: #92610c; }
 .account-dept-head-chip { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; background: #f0f2ee; border: 1px solid #e4e7e2; border-radius: 999px; padding: 3px 10px 3px 4px; font-size: 11.5px; color: #3a464d; white-space: nowrap; }
 .account-dept-head-chip i { width: 20px; height: 20px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-style: normal; font-size: 10px; font-weight: 700; }

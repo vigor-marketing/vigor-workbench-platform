@@ -8,11 +8,12 @@ import { IntegrationsService, type ServiceInput } from './integrations.service.j
 import { AuthService } from './auth.service.js'
 import { SalesService } from './sales.service.js'
 import { OrgService, type OrgPersonInput } from './org.service.js'
+import { RolesService } from './roles.service.js'
 import type { TodoEventInput } from './types.js'
 
 @Controller()
 export class AppController {
-  constructor(private readonly identity: IdentityService, private readonly apps: AppsService, private readonly todos: TodosService, private readonly integrations: IntegrationsService, private readonly auth: AuthService, private readonly sales: SalesService, private readonly org: OrgService) {}
+  constructor(private readonly identity: IdentityService, private readonly apps: AppsService, private readonly todos: TodosService, private readonly integrations: IntegrationsService, private readonly auth: AuthService, private readonly sales: SalesService, private readonly org: OrgService, private readonly roles: RolesService) {}
 
   @Get('health') health() { return { status: 'ok', todoStorage: this.todos.storageMode() } }
 
@@ -206,15 +207,57 @@ export class AppController {
   @Post('org/departments')
   async createOrgDepartment(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) { await this.admin(cookie, authorization); return this.org.addDepartment(body?.name ?? '').catch(error => { throw new BadRequestException(error.message) }) }
   @Put('org/departments/:name')
-  async renameOrgDepartment(@Param('name') name: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) { await this.admin(cookie, authorization); return this.org.renameDepartment(name, body?.name ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+  async renameOrgDepartment(@Param('name') name: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) {
+    await this.admin(cookie, authorization)
+    const result = await this.org.renameDepartment(name, body?.name ?? '').catch(error => { throw new BadRequestException(error.message) })
+    const cascade = await this.auth.renameDepartment(name, body?.name?.trim() ?? '')
+    return { ...result, updatedAccounts: cascade.changed }
+  }
   @Delete('org/departments/:name')
-  async deleteOrgDepartment(@Param('name') name: string, @Query('force') force?: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.org.deleteDepartment(name, force === 'true').catch(error => { throw new BadRequestException(error.message) }) }
+  async deleteOrgDepartment(@Param('name') name: string, @Query('force') force?: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) {
+    await this.admin(cookie, authorization)
+    const accounts = await this.auth.countDepartmentUsers(name)
+    if (accounts > 0) throw new BadRequestException(`仍有 ${accounts} 个账号关联该部门，请先在账号与权限中调整。`)
+    return this.org.deleteDepartment(name, force === 'true').catch(error => { throw new BadRequestException(error.message) })
+  }
   @Post('org/teams')
   async createOrgTeam(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { department?: string; team?: string }) { await this.admin(cookie, authorization); return this.org.addTeam(body?.department ?? '', body?.team ?? '').catch(error => { throw new BadRequestException(error.message) }) }
   @Put('org/teams/:team')
-  async renameOrgTeam(@Param('team') team: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { department?: string; team?: string }) { await this.admin(cookie, authorization); return this.org.renameTeam(body?.department ?? '', team, body?.team ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+  async renameOrgTeam(@Param('team') team: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { department?: string; team?: string }) {
+    await this.admin(cookie, authorization)
+    const result = await this.org.renameTeam(body?.department ?? '', team, body?.team ?? '').catch(error => { throw new BadRequestException(error.message) })
+    const cascade = await this.auth.renameTeam(body?.department?.trim() ?? '', team, body?.team?.trim() ?? '')
+    return { ...result, updatedAccounts: cascade.changed }
+  }
   @Delete('org/teams')
-  async deleteOrgTeam(@Query('department') department: string, @Query('team') team: string, @Query('force') force?: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.org.deleteTeam(department, team, force === 'true').catch(error => { throw new BadRequestException(error.message) }) }
+  async deleteOrgTeam(@Query('department') department: string, @Query('team') team: string, @Query('force') force?: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) {
+    await this.admin(cookie, authorization)
+    const accounts = await this.auth.countTeamUsers(department, team)
+    if (accounts > 0) throw new BadRequestException(`仍有 ${accounts} 个账号属于该小组，请先在账号与权限中调整。`)
+    return this.org.deleteTeam(department, team, force === 'true').catch(error => { throw new BadRequestException(error.message) })
+  }
+
+  @Get('admin/roles')
+  async listRoles(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) { await this.admin(cookie, authorization); return this.roles.list() }
+
+  @Post('admin/roles')
+  async createRole(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) { await this.admin(cookie, authorization); return this.roles.add(body?.name ?? '').catch(error => { throw new BadRequestException(error.message) }) }
+
+  @Put('admin/roles/:name')
+  async renameRole(@Param('name') name: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: { name?: string }) {
+    await this.admin(cookie, authorization)
+    const result = await this.roles.rename(name, body?.name ?? '').catch(error => { throw new BadRequestException(error.message) })
+    const cascade = await this.auth.renameRole(name, body?.name?.trim() ?? '')
+    return { ...result, updatedAccounts: cascade.changed }
+  }
+
+  @Delete('admin/roles/:name')
+  async deleteRole(@Param('name') name: string, @Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string) {
+    await this.admin(cookie, authorization)
+    const accounts = await this.auth.countRoleUsers(name)
+    if (accounts > 0) throw new BadRequestException(`该岗位正在被 ${accounts} 个账号使用，无法删除。`)
+    return this.roles.remove(name).catch(error => { throw new BadRequestException(error.message) })
+  }
 
   @Post('org/persons')
   async createOrgPerson(@Headers('cookie') cookie?: string, @Headers('authorization') authorization?: string, @Body() body?: OrgPersonInput) { await this.admin(cookie, authorization); return this.org.addPerson(body ?? {}).catch(error => { throw new BadRequestException(error.message) }) }

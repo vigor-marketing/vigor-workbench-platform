@@ -61,3 +61,13 @@ export async function getOrgTree(): Promise<OrgDeptNode[]> {
 export async function addOrgTeam(department: string, team: string) {
   return request('org/teams', { method: 'POST', body: JSON.stringify({ department, team }) })
 }
+
+export async function getServerRoles(): Promise<string[]> { return request('admin/roles') }
+export async function addServerRole(name: string) { return request('admin/roles', { method: 'POST', body: JSON.stringify({ name }) }) }
+export async function renameServerRole(oldName: string, newName: string) { return request('admin/roles/' + encodeURIComponent(oldName), { method: 'PUT', body: JSON.stringify({ name: newName }) }) }
+export async function deleteServerRole(name: string) { return request('admin/roles/' + encodeURIComponent(name), { method: 'DELETE' }) }
+
+export async function renameOrgDepartment(oldName: string, newName: string) { return request('org/departments/' + encodeURIComponent(oldName), { method: 'PUT', body: JSON.stringify({ name: newName }) }) }
+export async function deleteOrgDepartment(name: string) { return request('org/departments/' + encodeURIComponent(name), { method: 'DELETE' }) }
+export async function renameOrgTeam(department: string, oldTeam: string, newTeam: string) { return request('org/teams/' + encodeURIComponent(oldTeam), { method: 'PUT', body: JSON.stringify({ department, team: newTeam }) }) }
+export async function deleteOrgTeam(department: string, team: string) { return request('org/teams?department=' + encodeURIComponent(department) + '&team=' + encodeURIComponent(team), { method: 'DELETE' }) }
